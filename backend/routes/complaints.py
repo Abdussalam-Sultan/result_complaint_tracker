@@ -22,7 +22,10 @@ from backend.helpers import (
 
 router = APIRouter(prefix="/api/complaints", tags=["complaints"])
 
-UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+UPLOAD_DIR = os.getenv(
+    "UPLOAD_DIR",
+    "/tmp/uploads" if os.getenv("VERCEL") else os.path.join(os.getcwd(), "uploads")
+)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def build_complaint_response(c: Complaint, db: Session, hide_student_pii: bool = False) -> ComplaintResponse:

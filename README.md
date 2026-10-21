@@ -77,11 +77,13 @@ All demo accounts use the standard password: **`password123`**.
 
 ## Deploying the Full App to Vercel
 
-The Vercel deployment serves the Vite frontend and runs the TypeScript Express API as a Vercel Function. In the Vercel project settings, add `DATABASE_URL` as an environment variable for Production and Preview, using a remote PostgreSQL connection string. Do not commit `.env` or paste database credentials into source files.
+The root `vercel.json` deploys two Vercel Services in one project: the Vite frontend and the Python FastAPI backend in `backend/`. Keep the Vercel Root Directory at the repository root. Requests to `/api/*`, `/docs`, `/redoc`, and `/openapi.json` route to FastAPI; other requests route to the frontend.
 
-The TypeScript server loads `.env` for local development. On Vercel, configure the environment variable in the Vercel dashboard; serverless deployments require remote PostgreSQL and do not use the local embedded database snapshot.
+Add `DATABASE_URL` and a strong, unique `JWT_SECRET` in Vercel's environment settings for each environment. Use a remote PostgreSQL connection string and do not commit `.env` or credentials. The root `requirements.txt` points Vercel's Python build to `backend/requirements.txt`.
 
-To initialize demo accounts and scenarios, run `npm run seed` once against an empty demo database. **This seed script truncates existing records. Do not run it against a database containing data you need.**
+Initialize a new demo database by setting `DATABASE_URL` locally to that database and running `python backend/seed.py`. **The Python seed drops and recreates all database tables. Only run it against an empty test database or after backing up data you need.**
+
+Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`); files are not durable across function instances. Use object storage such as Supabase Storage if attachments must persist reliably.
 
 ---
 

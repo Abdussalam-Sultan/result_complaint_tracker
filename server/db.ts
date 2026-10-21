@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
 import { PGlite } from '@electric-sql/pglite';
@@ -52,10 +51,6 @@ export async function getDb(): Promise<DbClient> {
   const externalPgUrl =
     rawDbUrl.startsWith('postgresql://') || rawDbUrl.startsWith('postgres://') ? rawDbUrl : null;
   const externalPgHost = process.env.PGHOST || process.env.SQL_HOST;
-
-  if (process.env.VERCEL && !externalPgUrl && !externalPgHost) {
-    throw new Error('DATABASE_URL must point to a remote PostgreSQL database on Vercel.');
-  }
 
   if (externalPgUrl || externalPgHost) {
     console.log('[PostgreSQL] Connecting to remote PostgreSQL server via pg.Pool...');

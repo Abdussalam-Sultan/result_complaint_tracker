@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -9,13 +10,16 @@ from backend.routes import (
     notifications, stats, admin
 )
 
-# Ensure tables exist
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
 
 app = FastAPI(
     title="OAU Student Result Complaint Tracker API",
     description="Backend API for managing result complaints, mass issues clustering, and HOD escalations at Obafemi Awolowo University (OAU).",
     version="1.0.0",
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json"
@@ -31,7 +35,7 @@ app.add_middleware(
 )
 
 # Mount uploads static directory
-upload_dir = os.path.join(os.getcwd(), "uploads")
+upload_dir = complaints.UPLOAD_DIR
 os.makedirs(upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
