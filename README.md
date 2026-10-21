@@ -75,6 +75,16 @@ All demo accounts use the standard password: **`password123`**.
 
 ---
 
+## Deploying the Full App to Vercel
+
+The Vercel deployment serves the Vite frontend and runs the TypeScript Express API as a Vercel Function. In the Vercel project settings, add `DATABASE_URL` as an environment variable for Production and Preview, using a remote PostgreSQL connection string. Do not commit `.env` or paste database credentials into source files.
+
+The TypeScript server loads `.env` for local development. On Vercel, configure the environment variable in the Vercel dashboard; serverless deployments require remote PostgreSQL and do not use the local embedded database snapshot.
+
+To initialize demo accounts and scenarios, run `npm run seed` once against an empty demo database. **This seed script truncates existing records. Do not run it against a database containing data you need.**
+
+---
+
 ## Core Scenarios & Features Demonstrated
 
 ### 1. Mass & Overlapping Complaints Clustering
