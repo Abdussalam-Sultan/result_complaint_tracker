@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { Complaint, IssueGroup, ComplaintItem, Course } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { TimelineView } from '../../components/TimelineView';
+import { ComplaintAttachments } from '../../components/ComplaintAttachments';
 import {
   Users, Layers, CheckCircle2, XCircle, AlertTriangle,
   RotateCcw, ShieldAlert, ArrowRight, RefreshCw, Filter,
@@ -638,6 +639,13 @@ export const LecturerDashboard: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
+                  Student Evidence
+                </h4>
+                <ComplaintAttachments complaintId={activeItem.complaint_id} />
+              </section>
+
               <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">

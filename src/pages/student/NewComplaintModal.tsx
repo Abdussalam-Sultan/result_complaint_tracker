@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/client';
+import { uploadComplaintAttachment, validateComplaintAttachment } from '../../api/attachments';
 import { Course, IssueType } from '../../types';
 import {
   X, AlertTriangle, Upload, CheckSquare, Square,
@@ -121,6 +122,15 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       return;
     }
 
+    if (attachment) {
+      try {
+        validateComplaintAttachment(attachment);
+      } catch (validationError: any) {
+        setError(validationError.message);
+        return;
+      }
+    }
+
     // Build items payload
     const items = [];
     for (const issue of activeIssues) {
@@ -140,6 +150,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     }
 
     setLoading(true);
+    let complaintCreated = false;
     try {
       const res = await api.post('/complaints', {
         course_id: Number(selectedCourseId),
@@ -148,21 +159,24 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       });
 
       const newComplaint = res.data;
+      complaintCreated = true;
 
       // Upload attachment if any
       if (attachment && newComplaint.id) {
-        const formData = new FormData();
-        formData.append('file', attachment);
-        await api.post(`/complaints/${newComplaint.id}/attachment`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await uploadComplaintAttachment(newComplaint.id, attachment);
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || 'Failed to submit complaint. Please check your inputs.');
+      if (complaintCreated) onSuccess();
+      setError(
+        (complaintCreated
+          ? `Complaint submitted, but the evidence upload failed: ${err.response?.data?.detail || err.message || 'Please try again.'}`
+          : err.response?.data?.detail || err.message) ||
+        'Failed to submit complaint. Please check your inputs.'
+      );
     } finally {
       setLoading(false);
     }
@@ -322,7 +336,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                     {attachment ? attachment.name : 'Upload exam card, portal screenshot, or test script'}
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    PNG, JPG, PDF up to 5MB
+                    PNG, JPG, PDF up to 15MB
                   </span>
                 </div>
               </div>
@@ -334,6 +348,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
+                        setError(null);
                         setAttachment(e.target.files[0]);
                       }
                     }}

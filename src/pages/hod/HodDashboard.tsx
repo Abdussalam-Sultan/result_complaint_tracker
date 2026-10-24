@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { DepartmentStats, ComplaintItem, Course } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { TimelineView } from '../../components/TimelineView';
+import { ComplaintAttachments } from '../../components/ComplaintAttachments';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -456,6 +457,13 @@ export const HodDashboard: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
+                  Student Evidence
+                </h4>
+                <ComplaintAttachments complaintId={selectedItem.complaint_id} />
+              </section>
+
               {errorMsg && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-lg">
                   {errorMsg}

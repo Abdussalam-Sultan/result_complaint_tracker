@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
+    "dev:fastapi": "vite",
     "start": "tsx server.ts",
     "build": "vite build",
     "seed": "tsx server/seed.ts",
