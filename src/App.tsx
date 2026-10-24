@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { HomePage } from './pages/HomePage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
 import { LecturerDashboard } from './pages/lecturer/LecturerDashboard';
 import { HodDashboard } from './pages/hod/HodDashboard';
@@ -51,7 +53,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 const RootRedirect: React.FC = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <HomePage />;
   if (user.role === 'student') return <Navigate to="/student" replace />;
   if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />;
   if (user.role === 'hod') return <Navigate to="/hod" replace />;
@@ -65,6 +67,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route
             path="/student"
             element={

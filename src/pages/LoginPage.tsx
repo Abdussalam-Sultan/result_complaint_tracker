@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -39,8 +39,8 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#001733] via-[#002147] to-[#0B2545] flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 animate-in fade-in">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500 mx-auto flex items-center justify-center font-black text-2xl text-[#002147] shadow-xl border-2 border-amber-400">
-          OAU
+        <div className="w-28 h-28 rounded-2xl bg-white p-3 mx-auto shadow-xl border-2 border-amber-400">
+          <img src="/oau-logo.png" alt="Obafemi Awolowo University logo" className="w-full h-full object-contain" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
           Result Complaint Tracker
@@ -111,6 +111,20 @@ export const LoginPage: React.FC = () => {
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+
+          <div className="text-center space-y-1.5 text-xs text-slate-500">
+            <p>
+              New student?{' '}
+              <Link to="/register" className="font-semibold text-blue-700 hover:underline">
+                Create an account
+              </Link>
+            </p>
+            <p>
+              <Link to="/" className="hover:underline">
+                Back to home
+              </Link>
+            </p>
+          </div>
 
           <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

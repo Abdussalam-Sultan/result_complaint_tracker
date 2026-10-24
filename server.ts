@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import { apiRouter } from './server/apiRouter';
+import { registerRouter } from './server/registerRoute';
 import { getDb } from './server/db';
 import { seedDatabase } from './server/seed';
 
@@ -31,6 +32,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true }));
 
   // Mount API router
+  app.use('/api', registerRouter);
   app.use('/api', apiRouter);
 
   // Vite development integration

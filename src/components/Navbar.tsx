@@ -155,8 +155,8 @@ export const Navbar: React.FC = () => {
           }}
           className="flex items-center gap-3 cursor-pointer group"
         >
-          <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center font-black text-[#002147] shadow-inner text-base">
-            OAU
+          <div className="w-12 h-12 rounded-lg bg-white p-1 shadow-inner shrink-0">
+            <img src="/oau-logo.png" alt="Obafemi Awolowo University logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-2">

@@ -116,3 +116,36 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 - On the **Admin Console**, click the **"Trigger Simulation (+7 Days)"** button.
 - Items inactive for > 7 days under lecturer review are automatically escalated to the HOD (`"Auto-escalated: Inactive for 7 days"`).
 - Items where the student was asked for info (`NEEDS_INFO`) but did not respond after 7 days are automatically closed as `REJECTED` (`"Auto-closed: No response from student"`).
+
+---
+
+## Registration Page & Homepage
+
+- **Homepage** (`src/pages/HomePage.tsx`) is shown at `/` to visitors who are not signed in, with **Sign in** and **Create account** buttons.
+- **Registration** (`src/pages/RegisterPage.tsx`, route `/register`) lets a student sign up with their name, matric number (`CSC/2021/001` format), `@oauife.edu.ng` email, password and enrolled courses. Staff accounts are created by the admin.
+- Registration is served by two matching backends, so it works wherever the app runs:
+  - Python / FastAPI (used on Vercel): `backend/routes/register.py`
+  - Express (used by `npm run dev`): `server/registerRoute.ts`
+- Both use the same database connection as the login page. Students are always created with the `student` role.
+
+---
+
+## Set Up Your Own Copy (Database + Vercel)
+
+1. **Create a free PostgreSQL database** on [Neon](https://neon.tech) or [Supabase](https://supabase.com) and copy its connection string. On Supabase, use the **Session pooler** string.
+2. **Fill it with demo data** (this deletes and recreates all tables, so use a new, empty database only):
+   ```bash
+   pip install -r backend/requirements.txt
+   # macOS / Linux
+   export DATABASE_URL="your-connection-string"
+   # Windows PowerShell
+   $env:DATABASE_URL="your-connection-string"
+   python backend/seed.py
+   ```
+3. **Import the repo into Vercel** (Add New > Project). Keep the Root Directory at the repository root.
+4. **Add environment variables** in Vercel for Production, Preview and Development:
+   - `DATABASE_URL` = your connection string
+   - `JWT_SECRET` = a long random string
+5. **Deploy**, then open `/api/health`, then `/register` and create a test student.
+
+Never commit `.env` files or connection strings to GitHub.

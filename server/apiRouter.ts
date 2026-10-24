@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from './db';
+import { verifyPassword } from './registerRoute';
 
 export const apiRouter = Router();
 
@@ -200,7 +201,7 @@ apiRouter.post('/auth/login', async (req: Request, res: Response) => {
     }
 
     // Verify password (demo default password123 or stored hash)
-    if (password !== 'password123' && user.password_hash !== password) {
+    if (password !== 'password123' && !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ detail: 'Incorrect university email or password' });
     }
 

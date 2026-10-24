@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.database import engine, Base
 from backend.routes import (
     auth, courses, complaints, items, groups,
-    notifications, stats, admin
+    notifications, stats, admin, register
 )
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 # Include Routers
 app.include_router(auth.router)
+app.include_router(register.router)
 app.include_router(courses.router)
 app.include_router(complaints.router)
 app.include_router(items.router)
