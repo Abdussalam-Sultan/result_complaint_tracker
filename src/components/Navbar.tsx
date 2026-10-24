@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
@@ -72,6 +72,7 @@ export const Navbar: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const notificationAreaRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -93,21 +94,35 @@ export const Navbar: React.FC = () => {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handleMarkAsRead = async (id: number) => {
-    try {
-      await api.post(`/notifications/${id}/read`);
-      fetchNotifications();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  useEffect(() => {
+    if (!showNotifications) return;
 
-  const handleMarkAllRead = async () => {
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      if (!notificationAreaRef.current?.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+  }, [showNotifications]);
+
+  const handleNotificationToggle = async () => {
+    if (showNotifications) {
+      setShowNotifications(false);
+      return;
+    }
+
+    setShowNotifications(true);
+    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
+    setUnreadCount(0);
+
     try {
       await api.post('/notifications/read-all');
       fetchNotifications();
     } catch (err) {
       console.error(err);
+      fetchNotifications();
     }
   };
 
@@ -174,9 +189,9 @@ export const Navbar: React.FC = () => {
         {/* Right Actions */}
         <div className="flex items-center gap-3">
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative" ref={notificationAreaRef}>
             <button
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={handleNotificationToggle}
               className="p-2 rounded-full hover:bg-white/10 transition-colors relative cursor-pointer"
               title="In-App Notifications"
             >
@@ -190,13 +205,7 @@ export const Navbar: React.FC = () => {
 
             {/* Notification Drawer Popover */}
             {showNotifications && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowNotifications(false)}
-                  aria-hidden="true"
-                />
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 text-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 text-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                   <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-slate-900 text-sm">Notifications</span>
@@ -206,14 +215,6 @@ export const Navbar: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllRead}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
-                      >
-                        Mark all read
-                      </button>
-                    )}
                   </div>
 
                   <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
@@ -257,14 +258,6 @@ export const Navbar: React.FC = () => {
                                     minute: '2-digit',
                                   })}
                                 </span>
-                                {!notif.read && (
-                                  <button
-                                    onClick={() => handleMarkAsRead(notif.id)}
-                                    className="text-blue-600 hover:underline cursor-pointer font-medium"
-                                  >
-                                    Mark as read
-                                  </button>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -273,7 +266,6 @@ export const Navbar: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </>
             )}
           </div>
 

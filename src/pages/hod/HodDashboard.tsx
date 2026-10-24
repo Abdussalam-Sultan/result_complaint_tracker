@@ -23,7 +23,7 @@ export const HodDashboard: React.FC = () => {
 
   // Active review item
   const [selectedItem, setSelectedItem] = useState<ComplaintItem | null>(null);
-  const [actionDecision, setActionDecision] = useState<'RESOLVE' | 'REJECT' | 'OVERRIDE'>('RESOLVE');
+  const [actionDecision, setActionDecision] = useState<'RESOLVE' | 'REJECT'>('RESOLVE');
   const [hodNote, setHodNote] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -380,7 +380,7 @@ export const HodDashboard: React.FC = () => {
                 <th className="px-5 py-3">Student</th>
                 <th className="px-5 py-3">Issue</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">HOD Override</th>
+                <th className="px-5 py-3 text-right">HOD Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -418,13 +418,13 @@ export const HodDashboard: React.FC = () => {
                     <button
                       onClick={() => {
                         setSelectedItem(item);
-                        setActionDecision('OVERRIDE');
+                        setActionDecision('RESOLVE');
                         setHodNote('');
                         setErrorMsg(null);
                       }}
-                      className="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 rounded font-semibold text-xs cursor-pointer transition-colors"
+                      className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 rounded font-semibold text-xs cursor-pointer transition-colors"
                     >
-                      HOD Override
+                      Review Case
                     </button>
                   </td>
                 </tr>
@@ -467,7 +467,7 @@ export const HodDashboard: React.FC = () => {
                 <label className="block text-xs font-bold uppercase text-slate-600 mb-2">
                   Head of Department Ruling:
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setActionDecision('RESOLVE')}
@@ -492,19 +492,6 @@ export const HodDashboard: React.FC = () => {
                   >
                     <AlertTriangle className="w-4 h-4" />
                     <span>Final Rejection</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setActionDecision('OVERRIDE')}
-                    className={`p-3 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 cursor-pointer transition-all ${
-                      actionDecision === 'OVERRIDE'
-                        ? 'bg-purple-700 text-white border-purple-700 shadow-xs'
-                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span>Executive Override</span>
                   </button>
                 </div>
               </div>
