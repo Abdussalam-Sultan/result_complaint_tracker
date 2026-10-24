@@ -53,11 +53,6 @@ export const StudentDashboard: React.FC = () => {
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-[#002147] via-[#0B2E59] to-[#002147] rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-blue-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-amber-500/40">
-            <span>OAU Student Academic Portal</span>
-            <span>•</span>
-            <span>2023/2024 Session</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Welcome, {user?.name}
           </h1>
