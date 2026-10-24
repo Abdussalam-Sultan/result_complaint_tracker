@@ -43,10 +43,10 @@ export const LoginPage: React.FC = () => {
           <img src="/oau-logo.png" alt="Obafemi Awolowo University logo" className="w-full h-full object-contain" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Result Complaint Tracker
+          Rectify
         </h1>
         <p className="text-xs sm:text-sm text-blue-200">
-          Obafemi Awolowo University, Ile-Ife • Faculty of Technology
+          Result and Complaint Tracker for OAU
         </p>
       </div>
 

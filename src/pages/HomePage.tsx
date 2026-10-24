@@ -261,23 +261,38 @@ const scrollToId = (id: string, reduce: boolean | null) => {
   document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
 };
 
-const AuthButtons: React.FC<{ size?: 'sm' | 'lg'; onDark?: boolean }> = ({ size = 'sm', onDark = true }) => {
+const AuthButtons: React.FC<{ size?: 'sm' | 'lg'; onDark?: boolean; variant?: 'nav' | 'hero' | 'footer' }> = ({
+  size = 'sm',
+  onDark = true,
+  variant = 'nav',
+}) => {
   const pad = size === 'lg' ? 'px-6 py-3 text-sm' : 'px-4 py-2 text-xs';
+
+  const loginClasses =
+    variant === 'footer'
+      ? 'text-slate-700 border-slate-300 bg-white hover:bg-slate-100 shadow-sm'
+      : onDark
+        ? 'text-white border-white/30 bg-white/0 hover:bg-white/10'
+        : 'text-[#002147] border-[#002147]/30 hover:bg-[#002147]/5';
+
+  const signupClasses =
+    variant === 'footer'
+      ? 'bg-[#002147] text-white hover:bg-blue-900 shadow-md'
+      : variant === 'hero'
+        ? 'bg-amber-500 text-[#002147] hover:bg-amber-400 shadow-lg shadow-amber-500/20'
+        : 'bg-amber-500 text-[#002147] hover:bg-amber-400 shadow-md';
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       <Link
         to="/login"
-        className={`${pad} ${focusRing} rounded-xl font-bold border transition-colors ${
-          onDark
-            ? 'text-white border-white/30 hover:bg-white/10'
-            : 'text-[#002147] border-[#002147]/30 hover:bg-[#002147]/5'
-        }`}
+        className={`${pad} ${focusRing} rounded-xl font-bold border transition-all ${loginClasses}`}
       >
         Sign in
       </Link>
       <Link
         to="/register"
-        className={`${pad} ${focusRing} rounded-xl font-bold bg-amber-500 text-[#002147] hover:bg-amber-400 transition-colors shadow-md flex items-center gap-2`}
+        className={`${pad} ${focusRing} rounded-xl font-bold transition-all flex items-center gap-2 ${signupClasses}`}
       >
         <span>Create account</span>
         {size === 'lg' && <ArrowRight className="w-4 h-4" />}
@@ -375,44 +390,6 @@ const LiveComplaintCard: React.FC = () => {
   );
 };
 
-/** 25 students in one cluster; one click resolves them all. */
-const ClusterViz: React.FC = () => {
-  const reduce = useReducedMotion();
-  const [resolved, setResolved] = useState(false);
-  const total = 25;
-
-  return (
-    <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold text-slate-900">CSC 301: Missing score cluster</p>
-          <p className="text-[11px] text-slate-500">
-            {resolved ? `${total} of ${total} students resolved` : `${total} students waiting`}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setResolved((r) => !r)}
-          className={`text-xs font-bold px-4 py-2 rounded-xl bg-[#002147] text-white hover:bg-blue-900 transition-colors cursor-pointer ${focusRing}`}
-        >
-          {resolved ? 'Reset the example' : 'Resolve all with one note'}
-        </button>
-      </div>
-      <div className="mt-4 grid grid-cols-10 sm:grid-cols-[repeat(25,minmax(0,1fr))] gap-1.5" aria-hidden="true">
-        {Array.from({ length: total }, (_, i) => (
-          <motion.span
-            key={i}
-            className="aspect-square rounded-full"
-            initial={false}
-            animate={{ backgroundColor: resolved ? '#059669' : '#f59e0b', scale: resolved ? 1 : 0.9 }}
-            transition={reduce ? { duration: 0 } : { delay: i * 0.035, duration: 0.25 }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
 /* -------------------------------------------------------------------------- */
 /*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -444,7 +421,7 @@ export const HomePage: React.FC = () => {
             <span className="w-12 h-12 rounded-lg bg-white p-1 shrink-0">
               <img src="/oau-logo.png" alt="Obafemi Awolowo University logo" className="w-full h-full object-contain" />
             </span>
-            <span className="hidden sm:block text-sm font-bold text-white">Result Complaint Tracker</span>
+            <span className="hidden sm:block text-sm font-bold text-white">Rectify</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-blue-100" aria-label="Page sections">
@@ -463,7 +440,7 @@ export const HomePage: React.FC = () => {
             ))}
           </nav>
 
-          <AuthButtons />
+          <AuthButtons variant="nav" />
         </div>
       </header>
 
@@ -485,7 +462,7 @@ export const HomePage: React.FC = () => {
               said and what happens next, without walking from office to office.
             </motion.p>
             <motion.div variants={heroItem} className="pt-2">
-              <AuthButtons size="lg" />
+              <AuthButtons size="lg" variant="hero" />
               <p className="mt-3 text-xs text-blue-200">
                 Students register with their matric number. Staff accounts are created by the department admin.
               </p>
@@ -566,8 +543,6 @@ export const HomePage: React.FC = () => {
                     );
                   })}
                 </ol>
-
-                {scenario.id === 'mass' && <ClusterViz />}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -658,14 +633,14 @@ export const HomePage: React.FC = () => {
               <span>Have your matric number and course list ready. Registration takes about a minute.</span>
             </p>
           </div>
-          <AuthButtons size="lg" />
+          <AuthButtons size="lg" variant="footer" />
         </div>
       </section>
 
       <footer className="py-5 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
         <span className="inline-flex items-center gap-1.5">
           <ArrowUpRight className="w-3.5 h-3.5" />
-          Obafemi Awolowo University, Ile-Ife • Student Result Complaint & Escalation Tracking System
+          Rectify • Result and Complaint Tracker for OAU
         </span>
       </footer>
     </div>

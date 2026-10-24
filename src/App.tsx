@@ -44,7 +44,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       <Navbar />
       <main className="flex-1 pb-16">{children}</main>
       <footer className="py-4 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
-        Obafemi Awolowo University, Ile-Ife • Student Result Complaint & Escalation Tracking System
+        Rectify • Result and Complaint Tracker for OAU
       </footer>
     </div>
   );
