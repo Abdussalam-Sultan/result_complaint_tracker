@@ -1,0 +1,6 @@
+{
+  "name": "OAU Result Complaint Tracker",
+  "description": "Comprehensive student result complaint and escalation tracking system for Obafemi Awolowo University (OAU) with mass complaint clustering, multi-issue workflows, and HOD oversight.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
