@@ -12,7 +12,7 @@ It replaces physical score-chasing with an automated routing engine, mass compla
 - **Backend**: Python 3.10+, FastAPI, SQLAlchemy ORM, SQLite (`complaints.db`), Pydantic v2 schemas, JWT authentication (`python-jose`), `bcrypt` password hashing.
 - **Frontend**: React 19, TypeScript, Vite, React Router v7, Tailwind CSS v4, Axios, Recharts, Lucide Icons.
 - **Auditing & Notifications**: StatusEvent chronological timeline per issue item, in-app notifications with unread badge counter.
-- **Full-Stack Runner**: Node.js / Express proxy bridge (`server.ts`) mounting Vite and proxying to FastAPI.
+- **Local Dev Runner**: `npm run dev` starts Python FastAPI and Vite; Vite proxies `/api` requests to FastAPI.
 
 ---
 
@@ -23,6 +23,9 @@ From the root directory:
 ```bash
 # Install node dependencies
 npm install
+
+# Install Python dependencies
+pip install -r backend/requirements.txt
 
 # Start full-stack system (launches FastAPI on :8000 + Vite SPA on :3000)
 npm run dev
@@ -49,9 +52,9 @@ Swagger UI will be live at `http://127.0.0.1:8000/docs`.
 ---
 
 ### 3. Standalone Frontend (Vite)
-To run the React frontend independently pointing to the backend:
+To run only the frontend, start FastAPI separately using the command above, then run:
 ```bash
-npm run build # or npm run dev
+npm run dev:frontend
 ```
 
 ---
@@ -123,10 +126,7 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 
 - **Homepage** (`src/pages/HomePage.tsx`) is shown at `/` to visitors who are not signed in, with **Sign in** and **Create account** buttons.
 - **Registration** (`src/pages/RegisterPage.tsx`, route `/register`) lets a student sign up with their name, matric number (`CSC/2021/001` format), `@oauife.edu.ng` email, password and enrolled courses. Staff accounts are created by the admin.
-- Registration is served by two matching backends, so it works wherever the app runs:
-  - Python / FastAPI (used on Vercel): `backend/routes/register.py`
-  - Express (used by `npm run dev`): `server/registerRoute.ts`
-- Both use the same database connection as the login page. Students are always created with the `student` role.
+- Registration is handled by the Python FastAPI route in `backend/routes/register.py`. Students are always created with the `student` role.
 
 ---
 

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../api/client';
 import { uploadComplaintAttachment, validateComplaintAttachment } from '../../api/attachments';
 import { Course, IssueType } from '../../types';
 import {
-  X, AlertTriangle, Upload, CheckSquare, Square,
+  X, AlertTriangle, Upload, CheckSquare, Square, Trash2,
   HelpCircle, AlertCircle, FileCheck
 } from 'lucide-react';
 
@@ -56,7 +56,8 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   const [selectedIssues, setSelectedIssues] = useState<Record<string, boolean>>({});
   const [claimedScores, setClaimedScores] = useState<Record<string, string>>({});
   const [description, setDescription] = useState<string>('');
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +85,8 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     setSelectedIssues({});
     setClaimedScores({});
     setDescription('');
-    setAttachment(null);
+    setAttachments([]);
+    if (attachmentInputRef.current) attachmentInputRef.current.value = '';
     setError(null);
   };
 
@@ -122,11 +124,11 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       return;
     }
 
-    if (attachment) {
+    for (const attachment of attachments) {
       try {
         validateComplaintAttachment(attachment);
       } catch (validationError: any) {
-        setError(validationError.message);
+        setError(`${attachment.name}: ${validationError.message}`);
         return;
       }
     }
@@ -161,9 +163,11 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       const newComplaint = res.data;
       complaintCreated = true;
 
-      // Upload attachment if any
-      if (attachment && newComplaint.id) {
-        await uploadComplaintAttachment(newComplaint.id, attachment);
+      // Upload each evidence file after the complaint has been created.
+      if (newComplaint.id) {
+        for (const attachment of attachments) {
+          await uploadComplaintAttachment(newComplaint.id, attachment);
+        }
       }
 
       onSuccess();
@@ -173,7 +177,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
       if (complaintCreated) onSuccess();
       setError(
         (complaintCreated
-          ? `Complaint submitted, but the evidence upload failed: ${err.response?.data?.detail || err.message || 'Please try again.'}`
+          ? `Complaint submitted, but one or more evidence files failed to upload: ${err.response?.data?.detail || err.message || 'Please try again.'}`
           : err.response?.data?.detail || err.message) ||
         'Failed to submit complaint. Please check your inputs.'
       );
@@ -328,33 +332,79 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             <label className="block text-xs font-semibold uppercase text-slate-600 mb-1.5">
               Evidence / Score Slip Screenshot (Optional)
             </label>
-            <div className="border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50/70 hover:bg-slate-50 transition-colors flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Upload className="w-5 h-5 text-slate-400" />
-                <div>
-                  <span className="text-xs text-slate-700 font-medium block">
-                    {attachment ? attachment.name : 'Upload exam card, portal screenshot, or test script'}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    PNG, JPG, PDF up to 15MB
-                  </span>
+            <div className="border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50/70 hover:bg-slate-50 transition-colors space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Upload className="w-5 h-5 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-xs text-slate-700 font-medium block">
+                      {attachments.length > 0
+                        ? `${attachments.length} evidence file${attachments.length === 1 ? '' : 's'} selected`
+                        : 'Add exam card, portal screenshots, or test scripts'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      PNG, JPG, or PDF. Each file up to 15MB.
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 rounded-lg text-xs font-medium text-slate-700 cursor-pointer shadow-2xs">
-                  Browse
+                <label className="px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 rounded-lg text-xs font-medium text-slate-700 cursor-pointer shadow-2xs shrink-0">
+                  Add files
                   <input
+                    ref={attachmentInputRef}
                     type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    multiple
                     className="hidden"
                     onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
+                      const selectedFiles = Array.from(e.currentTarget.files ?? []);
+                      if (selectedFiles.length > 0) {
                         setError(null);
-                        setAttachment(e.target.files[0]);
+                        setAttachments((current) => {
+                          const existingFiles = new Set(
+                            current.map((file) => `${file.name}:${file.size}:${file.lastModified}`)
+                          );
+                          return [
+                            ...current,
+                            ...selectedFiles.filter((file) => {
+                              const key = `${file.name}:${file.size}:${file.lastModified}`;
+                              if (existingFiles.has(key)) return false;
+                              existingFiles.add(key);
+                              return true;
+                            }),
+                          ];
+                        });
                       }
+                      e.currentTarget.value = '';
                     }}
                   />
                 </label>
               </div>
+              {attachments.length > 0 && (
+                <ul className="space-y-2 border-t border-slate-200 pt-3">
+                  {attachments.map((attachment, index) => (
+                    <li
+                      key={`${attachment.name}:${attachment.size}:${attachment.lastModified}`}
+                      className="flex items-center justify-between gap-3 text-xs"
+                    >
+                      <span className="min-w-0 truncate text-slate-700" title={attachment.name}>
+                        {attachment.name}
+                        <span className="ml-2 text-[10px] text-slate-400">
+                          {(attachment.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                        aria-label={`Remove ${attachment.name}`}
+                        title="Remove file"
+                        className="p-1.5 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded transition-colors cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </form>

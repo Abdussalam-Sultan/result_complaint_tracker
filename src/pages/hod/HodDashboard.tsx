@@ -36,7 +36,18 @@ export const HodDashboard: React.FC = () => {
         api.get('/stats/overview'),
         api.get('/complaints'),
       ]);
-      setStats(statsRes.data);
+
+      const descriptionsByItemId = new Map<number, string>();
+      complaintsRes.data.forEach((c: any) => {
+        c.items.forEach((it: ComplaintItem) => descriptionsByItemId.set(it.id, c.description));
+      });
+      setStats({
+        ...statsRes.data,
+        oldest_unresolved: statsRes.data.oldest_unresolved.map((item: ComplaintItem) => ({
+          ...item,
+          description: descriptionsByItemId.get(item.id),
+        })),
+      });
 
       // Extract all escalated items
       const esc: ComplaintItem[] = [];
@@ -47,6 +58,7 @@ export const HodDashboard: React.FC = () => {
               ...it,
               student_name: c.student_name,
               matric_no: c.matric_no,
+              description: c.description,
               course_code: c.course_code,
               course_title: c.course_title,
             });
@@ -386,7 +398,17 @@ export const HodDashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {stats?.oldest_unresolved?.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={item.id}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setActionDecision('RESOLVE');
+                    setHodNote('');
+                    setErrorMsg(null);
+                  }}
+                  className="hover:bg-slate-50 transition-colors cursor-pointer"
+                  title="Open complaint review"
+                >
                   <td className="px-5 py-3.5">
                     <span
                       className={`font-bold px-2 py-0.5 rounded text-xs ${
@@ -457,6 +479,15 @@ export const HodDashboard: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
+                  Student Statement
+                </h4>
+                <p className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 whitespace-pre-wrap">
+                  {selectedItem.description || 'No statement provided.'}
+                </p>
+              </section>
+
               <section className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
                   Student Evidence
