@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import os
-import shutil
 from datetime import datetime
+from pathlib import PurePath
+from uuid import uuid4
 
 from backend.database import get_db
 from backend.models import (
@@ -12,21 +12,71 @@ from backend.models import (
 )
 from backend.schemas import (
     ComplaintCreate, ComplaintResponse, ComplaintItemResponse,
-    StatusEventResponse, AttachmentResponse
+    StatusEventResponse, AttachmentResponse, AttachmentUploadRequest,
+    AttachmentCompleteRequest
 )
 from backend.auth import get_current_user, require_roles
 from backend.helpers import (
     derive_complaint_status, update_complaint_overall_status,
     record_status_event, notify_user
 )
+from backend.storage import (
+    SIGNED_URL_TTL_SECONDS, SupabaseStorageError,
+    create_signed_download_url, create_signed_upload_url, get_object_metadata
+)
 
 router = APIRouter(prefix="/api/complaints", tags=["complaints"])
 
-UPLOAD_DIR = os.getenv(
-    "UPLOAD_DIR",
-    "/tmp/uploads" if os.getenv("VERCEL") else os.path.join(os.getcwd(), "uploads")
-)
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024
+ALLOWED_ATTACHMENT_TYPES = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+}
+
+
+def _validate_attachment_metadata(filename: str, size: int, content_type: str) -> str:
+    extension = PurePath(filename).suffix.lower()
+    expected_type = ALLOWED_ATTACHMENT_TYPES.get(extension)
+    if not filename.strip() or len(filename) > 255 or "\x00" in filename or not expected_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF, PNG, and JPEG files are allowed.",
+        )
+    if content_type.lower() != expected_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The file type does not match its filename.",
+        )
+    if size <= 0 or size > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File size must be between 1 byte and 15 MB.",
+        )
+    return extension
+
+
+def _get_authorized_complaint(
+    complaint_id: int, current_user: User, db: Session
+) -> Complaint:
+    complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    if current_user.role == "student":
+        allowed = complaint.student_id == current_user.id
+    elif current_user.role == "lecturer":
+        allowed = complaint.course.lecturer_id == current_user.id
+    else:
+        allowed = current_user.role in {"hod", "admin"}
+
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this complaint.",
+        )
+    return complaint
 
 def build_complaint_response(c: Complaint, db: Session, hide_student_pii: bool = False) -> ComplaintResponse:
     items_out = []
@@ -299,59 +349,142 @@ def get_complaint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
-    if not complaint:
-        raise HTTPException(status_code=404, detail="Complaint not found")
-
-    # Access control
-    if current_user.role == "student" and complaint.student_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You do not have permission to view another student's complaint.")
-    elif current_user.role == "lecturer":
-        if complaint.course.lecturer_id != current_user.id:
-            raise HTTPException(status_code=403, detail="You only have access to complaints for courses you teach.")
-
+    complaint = _get_authorized_complaint(complaint_id, current_user, db)
     return build_complaint_response(complaint, db, hide_student_pii=False)
 
-@router.post("/{complaint_id}/attachment")
-def upload_attachment(
+
+@router.post("/{complaint_id}/attachment/prepare")
+def prepare_attachment_upload(
     complaint_id: int,
-    file: UploadFile = File(...),
+    payload: AttachmentUploadRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
-    if not complaint:
-        raise HTTPException(status_code=404, detail="Complaint not found")
+    complaint = _get_authorized_complaint(complaint_id, current_user, db)
+    if current_user.role != "student" or complaint.student_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the student who filed the complaint can upload evidence.",
+        )
 
-    if current_user.role == "student" and complaint.student_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    extension = _validate_attachment_metadata(
+        payload.filename, payload.size, payload.content_type
+    )
+    path = f"complaints/{complaint.id}/{current_user.id}/{uuid4().hex}{extension}"
+    try:
+        upload_url = create_signed_upload_url(path)
+    except SupabaseStorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
 
-    filename = f"{complaint_id}_{int(datetime.utcnow().timestamp())}_{file.filename}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    return {"path": path, "upload_url": upload_url}
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
 
-    file_size = os.path.getsize(file_path)
+@router.post("/{complaint_id}/attachment/complete", response_model=AttachmentResponse)
+def complete_attachment_upload(
+    complaint_id: int,
+    payload: AttachmentCompleteRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    complaint = _get_authorized_complaint(complaint_id, current_user, db)
+    if current_user.role != "student" or complaint.student_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the student who filed the complaint can upload evidence.",
+        )
+
+    _validate_attachment_metadata(payload.filename, payload.size, payload.content_type)
+    expected_prefix = f"complaints/{complaint.id}/{current_user.id}/"
+    if (
+        not payload.path.startswith(expected_prefix)
+        or "\\" in payload.path
+        or ".." in payload.path.split("/")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid upload path for this complaint.",
+        )
+
+    existing_attachment = db.query(Attachment).filter(
+        Attachment.complaint_id == complaint.id,
+        Attachment.file_path == payload.path,
+    ).first()
+    if existing_attachment:
+        return existing_attachment
+
+    try:
+        metadata = get_object_metadata(payload.path)
+    except SupabaseStorageError as exc:
+        if exc.status_code not in {400, 404}:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The uploaded file could not be verified in Supabase Storage.",
+        ) from exc
+
+    object_metadata = metadata.get("metadata") or {}
+    try:
+        actual_size = int(object_metadata.get("size", metadata.get("size")))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Supabase Storage did not return the uploaded file size.",
+        ) from exc
+    actual_content_type = (
+        object_metadata.get("mimetype")
+        or object_metadata.get("contentType")
+        or metadata.get("mimetype")
+    )
+    if actual_size != payload.size or (
+        actual_content_type
+        and actual_content_type.lower() != payload.content_type.lower()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file metadata does not match the prepared upload.",
+        )
 
     attachment = Attachment(
-        complaint_id=complaint_id,
-        filename=file.filename,
-        file_path=f"/uploads/{filename}",
-        file_size=file_size,
+        complaint_id=complaint.id,
+        filename=PurePath(payload.filename.replace("\\", "/")).name,
+        file_path=payload.path,
+        file_size=payload.size,
         uploaded_at=datetime.utcnow()
     )
     db.add(attachment)
     db.commit()
     db.refresh(attachment)
 
-    return {
-        "success": True,
-        "attachment": AttachmentResponse(
-            id=attachment.id,
-            filename=attachment.filename,
-            file_path=attachment.file_path,
-            file_size=attachment.file_size,
-            uploaded_at=attachment.uploaded_at
-        )
-    }
+    return attachment
+
+
+@router.get("/{complaint_id}/attachments/{attachment_id}/download")
+def get_attachment_download_url(
+    complaint_id: int,
+    attachment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    complaint = _get_authorized_complaint(complaint_id, current_user, db)
+    attachment = db.query(Attachment).filter(
+        Attachment.id == attachment_id,
+        Attachment.complaint_id == complaint.id,
+    ).first()
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    try:
+        url = create_signed_download_url(attachment.file_path)
+    except SupabaseStorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    return {"url": url, "expires_in": SIGNED_URL_TTL_SECONDS}

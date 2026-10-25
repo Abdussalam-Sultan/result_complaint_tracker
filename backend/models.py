@@ -142,7 +142,7 @@ class Attachment(Base):
     id = Column(Integer, primary_key=True, index=True)
     complaint_id = Column(Integer, ForeignKey("complaints.id"), nullable=False, index=True)
     filename = Column(String(255), nullable=False)
-    file_path = Column(String(500), nullable=False)
+    file_path = Column(String(500), nullable=False)  # Supabase bucket object path
     file_size = Column(Integer, default=0)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
 

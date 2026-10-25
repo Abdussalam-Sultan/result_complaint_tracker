@@ -4,6 +4,7 @@ import api from '../../api/client';
 import { Complaint, IssueGroup, ComplaintItem, Course } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { TimelineView } from '../../components/TimelineView';
+import { ComplaintAttachments } from '../../components/ComplaintAttachments';
 import {
   Users, Layers, CheckCircle2, XCircle, AlertTriangle,
   RotateCcw, ShieldAlert, ArrowRight, RefreshCw, Filter,
@@ -128,6 +129,7 @@ export const LecturerDashboard: React.FC = () => {
         ...item,
         student_name: c.student_name,
         matric_no: c.matric_no,
+        description: c.description,
         course_code: c.course_code,
         course_title: c.course_title,
       });
@@ -391,7 +393,17 @@ export const LecturerDashboard: React.FC = () => {
                 </tr>
               ) : (
                 filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={item.id}
+                    onClick={() => {
+                      setActiveItem(item);
+                      setActionType('RESOLVE');
+                      setActionNote('');
+                      setActionError(null);
+                    }}
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                    title="Open complaint review"
+                  >
                     <td className="px-5 py-3.5">
                       <span className="font-semibold text-slate-900 block text-xs">
                         {item.student_name || 'Student'}
@@ -638,6 +650,22 @@ export const LecturerDashboard: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
+                  Student Statement
+                </h4>
+                <p className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 whitespace-pre-wrap">
+                  {activeItem.description || 'No statement provided.'}
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase text-slate-600 tracking-wider">
+                  Student Evidence
+                </h4>
+                <ComplaintAttachments complaintId={activeItem.complaint_id} />
+              </section>
+
               <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">

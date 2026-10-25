@@ -3,6 +3,7 @@ import api from '../../api/client';
 import { Complaint, ComplaintItem } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { TimelineView } from '../../components/TimelineView';
+import { ComplaintAttachments } from '../../components/ComplaintAttachments';
 import {
   X, MessageSquare, AlertTriangle, RotateCcw,
   Ban, Paperclip, CheckCircle2, ShieldAlert
@@ -127,32 +128,18 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Attachments if any */}
-          {complaint.attachments && complaint.attachments.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase text-slate-600 mb-1.5 tracking-wider flex items-center gap-1.5">
-                <Paperclip className="w-3.5 h-3.5" />
-                Submitted Evidence
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {complaint.attachments.map((att) => (
-                  <a
-                    key={att.id}
-                    href={att.file_path}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-medium text-blue-800 transition-colors"
-                  >
-                    <Paperclip className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{att.filename}</span>
-                    <span className="text-[10px] text-blue-500">
-                      ({Math.round(att.file_size / 1024)} KB)
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+            <h4 className="text-xs font-semibold uppercase text-slate-600 mb-1.5 tracking-wider flex items-center gap-1.5">
+              <Paperclip className="w-3.5 h-3.5" />
+              Submitted Evidence
+            </h4>
+            <ComplaintAttachments
+              complaintId={complaint.id}
+              attachments={complaint.attachments || []}
+              allowUpload
+              onUploaded={onRefresh}
+            />
+          </div>
 
           {/* Issue Items Breakdown */}
           <div className="space-y-4">

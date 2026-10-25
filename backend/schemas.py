@@ -199,6 +199,14 @@ class AttachmentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class AttachmentUploadRequest(BaseModel):
+    filename: str
+    size: int
+    content_type: str
+
+class AttachmentCompleteRequest(AttachmentUploadRequest):
+    path: str
+
 class ComplaintResponse(BaseModel):
     id: int
     student_id: int

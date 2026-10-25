@@ -65,6 +65,7 @@ export interface ComplaintItem {
   timeline: StatusEvent[];
   student_name?: string;
   matric_no?: string;
+  description?: string;
   course_code?: string;
   course_title?: string;
   days_open?: number;

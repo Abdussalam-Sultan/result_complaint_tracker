@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
-import { User, Course } from '../../types';
+import { User, Course, Complaint } from '../../types';
+import { ComplaintAttachments } from '../../components/ComplaintAttachments';
 import {
   Users, BookOpen, Clock, Play, RotateCcw,
-  CheckCircle2, AlertTriangle, ShieldAlert, Plus, X, UserCheck
+  CheckCircle2, AlertTriangle, ShieldAlert, Plus, X, UserCheck, Paperclip
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [complaintsLoading, setComplaintsLoading] = useState<boolean>(false);
+  const [complaintsError, setComplaintsError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Tab
-  const [activeTab, setActiveTab] = useState<'COURSES' | 'USERS' | 'SIMULATION'>('COURSES');
+  const [activeTab, setActiveTab] = useState<'COURSES' | 'USERS' | 'SIMULATION' | 'EVIDENCE'>('COURSES');
 
   // Simulation State
   const [simDays, setSimDays] = useState<number>(7);
@@ -49,6 +53,20 @@ export const AdminDashboard: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchComplaints = async () => {
+    setComplaintsLoading(true);
+    setComplaintsError(null);
+    try {
+      const response = await api.get('/complaints');
+      setComplaints(response.data);
+    } catch (err: any) {
+      console.error(err);
+      setComplaintsError(err.response?.data?.detail || 'Could not load complaints.');
+    } finally {
+      setComplaintsLoading(false);
     }
   };
 
@@ -159,8 +177,64 @@ export const AdminDashboard: React.FC = () => {
           >
             SLA Policy Engine
           </button>
+          <button
+            onClick={() => {
+              setActiveTab('EVIDENCE');
+              fetchComplaints();
+            }}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              activeTab === 'EVIDENCE' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-blue-200 hover:text-white'
+            }`}
+          >
+            Complaint Evidence
+          </button>
         </div>
       </div>
+
+      {activeTab === 'EVIDENCE' && (
+        <section className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+          <div className="p-5 sm:px-6 bg-slate-50/80 border-b border-slate-200">
+            <h2 className="font-bold text-slate-900 flex items-center gap-2">
+              <Paperclip className="w-4 h-4 text-blue-700" />
+              Department Complaint Evidence
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              View submitted attachments for complaints across the department.
+            </p>
+          </div>
+          <div className="p-5 space-y-3">
+            {complaintsLoading ? (
+              <p className="text-sm text-slate-500">Loading complaints...</p>
+            ) : complaintsError ? (
+              <p role="alert" className="text-sm text-rose-700">{complaintsError}</p>
+            ) : complaints.length === 0 ? (
+              <p className="text-sm text-slate-500">No complaints are available.</p>
+            ) : (
+              complaints.map((complaint) => (
+                <article key={complaint.id} className="border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                      Complaint #{complaint.id} · {complaint.course_code}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {complaint.student_name || 'Student'} · {new Date(complaint.created_at).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-slate-700 mt-2">{complaint.description}</p>
+                  </div>
+                  {complaint.attachments?.length ? (
+                    <ComplaintAttachments
+                      complaintId={complaint.id}
+                      attachments={complaint.attachments}
+                    />
+                  ) : (
+                    <p className="text-xs text-slate-400">No attachment submitted.</p>
+                  )}
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       {/* TAB 3: SLA Policy Engine */}
       {activeTab === 'SIMULATION' && (
