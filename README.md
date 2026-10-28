@@ -61,18 +61,18 @@ npm run dev:frontend
 
 ## Pre-Seeded Demo Login Credentials
 All demo accounts use the standard password: **`password123`**. 
-Part advisors and admins sign in at `/staff/login` with their university email, unique staff ID, and password. Staff IDs use the format `OAU/FCE/STAFF/0001`.
+Part advisors and admins sign in at `/staff/login` with their university email, unique staff ID, and password. Staff IDs use the format `OAU/STAFF/0001`.
 
 | Role | Name | Email | Details / Scenario |
 |---|---|---|---|
-| **Part Advisor 1** | Dr. Folashade Babatunde | `advisor1@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0001` |
-| **Part Advisor 2** | Dr. Emeka Okoye | `advisor2@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0002` |
-| **Part Advisor 3** | Engr. Adeola Adelekan | `advisor3@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0003` |
-| **Part Advisor 4** | Dr. Tola Akinola | `advisor4@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0004` |
-| **Part Advisor 5** | Dr. Seyi Oladipo | `advisor5@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0005` |
-| **Part Advisor 6** | Dr. Kemi Adebayo | `advisor6@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0006`; available for admin assignment |
-| **Part Advisor 7** | Engr. Dele Okafor | `advisor7@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0007`; available for admin assignment |
-| **Admin** | Mrs. Funmilayo Alabi | `admin@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/9000`; department and course assignment |
+| **Part Advisor 1** | Dr. Folashade Babatunde | `advisor1@oauife.edu.ng` | Staff ID: `OAU/STAFF/0001` |
+| **Part Advisor 2** | Dr. Emeka Okoye | `advisor2@oauife.edu.ng` | Staff ID: `OAU/STAFF/0002` |
+| **Part Advisor 3** | Engr. Adeola Adelekan | `advisor3@oauife.edu.ng` | Staff ID: `OAU/STAFF/0003` |
+| **Part Advisor 4** | Dr. Tola Akinola | `advisor4@oauife.edu.ng` | Staff ID: `OAU/STAFF/0004` |
+| **Part Advisor 5** | Dr. Seyi Oladipo | `advisor5@oauife.edu.ng` | Staff ID: `OAU/STAFF/0005` |
+| **Part Advisor 6** | Dr. Kemi Adebayo | `advisor6@oauife.edu.ng` | Staff ID: `OAU/STAFF/0006`; available for admin assignment |
+| **Part Advisor 7** | Engr. Dele Okafor | `advisor7@oauife.edu.ng` | Staff ID: `OAU/STAFF/0007`; available for admin assignment |
+| **Admin** | Mrs. Funmilayo Alabi | `admin@oauife.edu.ng` | Staff ID: `OAU/STAFF/9000`; department and course assignment |
 | **Student (Multi-issue)** | Ayomide Balogun | `ayomide@oauife.edu.ng` | Matric: `CSC/2021/001` (Missing CA + Wrong Grade) |
 | **Student (Mass issue)** | Chiamaka Eze | `chiamaka@oauife.edu.ng` | Matric: `CSC/2021/002` (Part of CSC 301 mass missing score) |
 | **Student (Reopened)** | Victor Ekanem | `victor@oauife.edu.ng` | Matric: `CSC/2021/026` (Disputed script remark returned to review) |
@@ -126,7 +126,7 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 
 - **Homepage** (`src/pages/HomePage.tsx`) is shown at `/` to visitors who are not signed in, with **Sign in** and **Create account** buttons.
 - **Student registration** (`/register`) asks for name, matric number, university email, department, and password. Department and shared courses are assigned automatically.
-- **Staff registration and login** are available at `/staff/register` and `/staff/login`. Each staff account requires a unique staff ID in the `OAU/FCE/STAFF/0001` format; an admin must assign the account as a department's part advisor.
+- **Staff registration and login** are available at `/staff/register` and `/staff/login`. Each staff account requires a unique staff ID in the `OAU/STAFF/0001` format; an admin must assign the account as a department's part advisor.
 - The API validates the department, course membership, and staff ID before creating accounts.
 
 ---
