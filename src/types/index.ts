@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'lecturer' | 'hod' | 'admin';
+export type UserRole = 'student' | 'part_advisor' | 'admin';
 
 export interface User {
   id: number;
@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: UserRole;
   matric_no?: string | null;
+  staff_id?: string | null;
   department?: string;
   created_at?: string;
 }
@@ -24,7 +25,6 @@ export type ItemStatus =
   | 'NEEDS_INFO'
   | 'RESOLVED'
   | 'REJECTED'
-  | 'ESCALATED'
   | 'WITHDRAWN';
 
 export interface Course {
@@ -33,9 +33,8 @@ export interface Course {
   title: string;
   session: string;
   semester: string;
-  lecturer_id?: number | null;
-  lecturer_name?: string;
   enrollment_count?: number;
+  departments?: string[];
 }
 
 export interface StatusEvent {
@@ -57,7 +56,7 @@ export interface ComplaintItem {
   status: ItemStatus;
   claimed_score?: number | null;
   group_id?: number | null;
-  assigned_to_role: 'lecturer' | 'hod';
+  assigned_to_role: 'part_advisor' | 'admin';
   reopened: boolean;
   reopen_count: number;
   created_at: string;
@@ -106,8 +105,8 @@ export interface IssueGroup {
   created_at: string;
   updated_at: string;
   student_count: number;
-  assigned_lecturer_id?: number | null;
-  assigned_lecturer_name?: string;
+  assigned_advisor_id?: number | null;
+  assigned_advisor_name?: string;
   items: ComplaintItem[];
 }
 
@@ -124,7 +123,6 @@ export interface DepartmentStats {
   total_complaints: number;
   total_items: number;
   pending_count: number;
-  escalated_count: number;
   resolved_count: number;
   rejected_count: number;
   avg_resolution_hours: number;
@@ -133,10 +131,9 @@ export interface DepartmentStats {
     course_id: number;
     code: string;
     title: string;
-    lecturer_name: string;
+    part_advisor_name: string;
     total: number;
     open: number;
-    escalated: number;
     resolved: number;
     rejected: number;
   }>;
@@ -145,10 +142,9 @@ export interface DepartmentStats {
     label: string;
     total: number;
     resolved: number;
-    escalated: number;
   }>;
   oldest_unresolved: ComplaintItem[];
-  courses_without_lecturers: Array<{
+  courses_without_advisors: Array<{
     id: number;
     code: string;
     title: string;

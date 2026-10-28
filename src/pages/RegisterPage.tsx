@@ -14,14 +14,6 @@ import {
 } from 'lucide-react';
 import api from '../api/client';
 
-interface CourseOption {
-  id: number;
-  code: string;
-  title: string;
-  session: string;
-  semester: string;
-}
-
 const EMAIL_DOMAIN = '@oauife.edu.ng';
 const MATRIC_PATTERN = /^[A-Z]{2,4}\/\d{4}\/\d{3,4}$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -35,15 +27,12 @@ export const RegisterPage: React.FC = () => {
 
   const [name, setName] = useState('');
   const [matricNo, setMatricNo] = useState('');
+  const [department, setDepartment] = useState('');
+  const [departments, setDepartments] = useState<string[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
-
-  const [courses, setCourses] = useState<CourseOption[]>([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [coursesError, setCoursesError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,31 +40,20 @@ export const RegisterPage: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .get('/auth/register/courses')
-      .then((res) => {
-        if (!cancelled) setCourses(res.data);
-      })
-      .catch(() => {
-        if (!cancelled) setCoursesError('Could not load the course list. Refresh the page to try again.');
-      })
-      .finally(() => {
-        if (!cancelled) setCoursesLoading(false);
-      });
+    api.get('/auth/departments')
+      .then((res) => { if (!cancelled) setDepartments(res.data); })
+      .catch(() => { if (!cancelled) setError('Could not load departments. Refresh the page to try again.'); });
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const toggleCourse = (id: number) => {
-    setSelectedCourses((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
-  };
 
   const validate = (): string | null => {
     if (name.trim().length < 2) return 'Enter your full name.';
     if (!MATRIC_PATTERN.test(matricNo.trim().toUpperCase())) {
       return 'Enter your matric number in the format CSC/2021/001.';
     }
+    if (!department) return 'Select your department.';
     if (!email.trim().toLowerCase().endsWith(EMAIL_DOMAIN)) {
       return `Use your university email ending in ${EMAIL_DOMAIN}.`;
     }
@@ -83,7 +61,6 @@ export const RegisterPage: React.FC = () => {
       return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
     }
     if (password !== confirmPassword) return 'The two passwords do not match.';
-    if (selectedCourses.length === 0) return 'Select at least one course you are enrolled in.';
     return null;
   };
 
@@ -102,9 +79,9 @@ export const RegisterPage: React.FC = () => {
       await api.post('/auth/register', {
         name: name.trim(),
         matric_no: matricNo.trim().toUpperCase(),
+        department,
         email: email.trim().toLowerCase(),
         password,
-        course_ids: selectedCourses,
       });
       setSuccess(true);
     } catch (err: any) {
@@ -136,8 +113,7 @@ export const RegisterPage: React.FC = () => {
               <div className="space-y-1">
                 <h2 className="text-lg font-bold text-slate-900">Account created</h2>
                 <p className="text-xs text-slate-500">
-                  You are registered for {selectedCourses.length}{' '}
-                  {selectedCourses.length === 1 ? 'course' : 'courses'}. Sign in to lodge a result complaint.
+                  Your account is assigned to {department}. Your department and shared courses will appear on your dashboard.
                 </p>
               </div>
               <button
@@ -226,6 +202,20 @@ export const RegisterPage: React.FC = () => {
                 </div>
 
                 <div>
+                  <label htmlFor="reg-department" className={labelClass}>Department</label>
+                  <select
+                    id="reg-department"
+                    required
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all"
+                  >
+                    <option value="">Select your department</option>
+                    {departments.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </div>
+
+                <div>
                   <label htmlFor="reg-password" className={labelClass}>
                     Password
                   </label>
@@ -270,37 +260,6 @@ export const RegisterPage: React.FC = () => {
                     />
                   </div>
                 </div>
-
-                <fieldset>
-                  <legend className={labelClass}>Your Courses</legend>
-                  <p className="text-[11px] text-slate-500 mb-2">
-                    Select every course you are enrolled in. You can only lodge complaints for these.
-                  </p>
-                  <div className="max-h-44 overflow-y-auto border border-slate-300 rounded-xl bg-slate-50 divide-y divide-slate-200">
-                    {coursesLoading && <p className="p-3 text-xs text-slate-500">Loading courses...</p>}
-                    {coursesError && <p className="p-3 text-xs text-rose-700">{coursesError}</p>}
-                    {!coursesLoading && !coursesError && courses.length === 0 && (
-                      <p className="p-3 text-xs text-slate-500">No courses have been set up yet. Contact the department admin.</p>
-                    )}
-                    {courses.map((course) => (
-                      <label
-                        key={course.id}
-                        className="flex items-start gap-2.5 p-2.5 text-xs text-slate-800 cursor-pointer hover:bg-white"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedCourses.includes(course.id)}
-                          onChange={() => toggleCourse(course.id)}
-                          className="mt-0.5 accent-[#002147]"
-                        />
-                        <span>
-                          <span className="font-semibold">{course.code}</span>
-                          <span className="text-slate-600"> {course.title}</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
 
                 <button
                   type="submit"

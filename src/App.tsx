@@ -6,9 +6,10 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { StudentDashboard } from './pages/student/StudentDashboard';
-import { LecturerDashboard } from './pages/lecturer/LecturerDashboard';
-import { HodDashboard } from './pages/hod/HodDashboard';
+import { PartAdvisorDashboard } from './pages/lecturer/LecturerDashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { StaffLoginPage } from './pages/StaffLoginPage';
+import { StaffRegisterPage } from './pages/StaffRegisterPage';
 import { UserRole } from './types';
 
 interface ProtectedRouteProps {
@@ -34,9 +35,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to user's own home dashboard
     if (user.role === 'student') return <Navigate to="/student" replace />;
-    if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />;
-    if (user.role === 'hod') return <Navigate to="/hod" replace />;
+    if (user.role === 'part_advisor') return <Navigate to="/advisor" replace />;
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -55,8 +56,7 @@ const RootRedirect: React.FC = () => {
   if (loading) return null;
   if (!user) return <HomePage />;
   if (user.role === 'student') return <Navigate to="/student" replace />;
-  if (user.role === 'lecturer') return <Navigate to="/lecturer" replace />;
-  if (user.role === 'hod') return <Navigate to="/hod" replace />;
+  if (user.role === 'part_advisor') return <Navigate to="/advisor" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   return <Navigate to="/login" replace />;
 };
@@ -68,6 +68,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/staff/login" element={<StaffLoginPage />} />
+          <Route path="/staff/register" element={<StaffRegisterPage />} />
           <Route
             path="/student"
             element={
@@ -77,18 +79,10 @@ export default function App() {
             }
           />
           <Route
-            path="/lecturer"
+            path="/advisor"
             element={
-              <ProtectedRoute allowedRoles={['lecturer']}>
-                <LecturerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/hod"
-            element={
-              <ProtectedRoute allowedRoles={['hod']}>
-                <HodDashboard />
+              <ProtectedRoute allowedRoles={['part_advisor']}>
+                <PartAdvisorDashboard />
               </ProtectedRoute>
             }
           />

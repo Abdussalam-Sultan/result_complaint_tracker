@@ -5,27 +5,37 @@ from typing import Dict, List
 
 from backend.database import get_db
 from backend.models import (
-    Complaint, ComplaintItem, Course, User, IssueGroup
+    Complaint, ComplaintItem, Course, CourseDepartment, Department, User
 )
 from backend.schemas import DepartmentOverviewStats, ComplaintItemResponse, StatusEventResponse
-from backend.auth import require_roles
+from backend.auth import require_assigned_part_advisor_or_admin
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
 @router.get("/overview", response_model=DepartmentOverviewStats)
 def get_department_stats(
-    current_user: User = Depends(require_roles(["hod", "admin", "lecturer"])),
+    current_user: User = Depends(require_assigned_part_advisor_or_admin()),
     db: Session = Depends(get_db)
 ):
-    complaints = db.query(Complaint).all()
-    items = db.query(ComplaintItem).all()
-    courses = db.query(Course).all()
+    complaint_query = db.query(Complaint)
+    if current_user.role == "part_advisor":
+        complaint_query = complaint_query.join(User, Complaint.student_id == User.id).filter(
+            User.department == current_user.department
+        )
+    complaints = complaint_query.all()
+    complaint_ids = [complaint.id for complaint in complaints]
+    items = db.query(ComplaintItem).join(Complaint).filter(Complaint.id.in_(complaint_ids)).all() if complaint_ids else []
+    course_query = db.query(Course)
+    if current_user.role == "part_advisor":
+        course_query = course_query.join(CourseDepartment).filter(
+            CourseDepartment.department_name.in_([current_user.department, "All Departments"])
+        )
+    courses = course_query.all()
 
     total_complaints = len(complaints)
     total_items = len(items)
 
     pending_count = sum(1 for i in items if i.status in ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO"])
-    escalated_count = sum(1 for i in items if i.status == "ESCALATED")
     resolved_count = sum(1 for i in items if i.status == "RESOLVED")
     rejected_count = sum(1 for i in items if i.status == "REJECTED")
 
@@ -33,7 +43,6 @@ def get_department_stats(
         "SUBMITTED": sum(1 for i in items if i.status == "SUBMITTED"),
         "UNDER_REVIEW": sum(1 for i in items if i.status == "UNDER_REVIEW"),
         "NEEDS_INFO": sum(1 for i in items if i.status == "NEEDS_INFO"),
-        "ESCALATED": escalated_count,
         "RESOLVED": resolved_count,
         "REJECTED": rejected_count,
         "WITHDRAWN": sum(1 for i in items if i.status == "WITHDRAWN"),
@@ -51,15 +60,15 @@ def get_department_stats(
     by_course = []
     for c in courses:
         c_items = [i for i in items if i.complaint and i.complaint.course_id == c.id]
-        if c_items or c.lecturer_id is None:
+        if c_items:
+            department = db.query(Department).filter(Department.name == current_user.department).first()
             by_course.append({
                 "course_id": c.id,
                 "code": c.code,
                 "title": c.title,
-                "lecturer_name": c.lecturer.name if c.lecturer else "Unassigned (HOD)",
+                "part_advisor_name": department.part_advisor.name if department and department.part_advisor else "Unassigned",
                 "total": len(c_items),
                 "open": sum(1 for i in c_items if i.status in ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO"]),
-                "escalated": sum(1 for i in c_items if i.status == "ESCALATED"),
                 "resolved": sum(1 for i in c_items if i.status == "RESOLVED"),
                 "rejected": sum(1 for i in c_items if i.status == "REJECTED"),
             })
@@ -67,12 +76,10 @@ def get_department_stats(
     # Issue type breakdown
     issue_types = {}
     for i in items:
-        issue_types.setdefault(i.issue_type, {"total": 0, "resolved": 0, "escalated": 0})
+        issue_types.setdefault(i.issue_type, {"total": 0, "resolved": 0})
         issue_types[i.issue_type]["total"] += 1
         if i.status == "RESOLVED":
             issue_types[i.issue_type]["resolved"] += 1
-        elif i.status == "ESCALATED":
-            issue_types[i.issue_type]["escalated"] += 1
 
     by_issue_type = [
         {
@@ -80,14 +87,13 @@ def get_department_stats(
             "label": k.replace("_", " ").title(),
             "total": v["total"],
             "resolved": v["resolved"],
-            "escalated": v["escalated"]
         }
         for k, v in issue_types.items()
     ]
 
     # Oldest unresolved items
     unresolved = [
-        i for i in items if i.status in ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO", "ESCALATED"]
+        i for i in items if i.status in ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO"]
     ]
     unresolved.sort(key=lambda x: x.created_at)
 
@@ -131,16 +137,23 @@ def get_department_stats(
             days_open=(datetime.utcnow() - item.created_at).days
         ))
 
-    courses_without_lecturers = [
-        {"id": c.id, "code": c.code, "title": c.title, "session": c.session}
-        for c in courses if c.lecturer_id is None
-    ]
+    courses_without_advisors = []
+    for course in courses:
+        for membership in course.departments:
+            department = membership.department_record
+            if department and department.name != "All Departments" and not department.part_advisor_id:
+                courses_without_advisors.append({
+                    "id": course.id,
+                    "code": course.code,
+                    "title": course.title,
+                    "session": course.session,
+                    "department": department.name,
+                })
 
     return DepartmentOverviewStats(
         total_complaints=total_complaints,
         total_items=total_items,
         pending_count=pending_count,
-        escalated_count=escalated_count,
         resolved_count=resolved_count,
         rejected_count=rejected_count,
         avg_resolution_hours=avg_resolution_hours,
@@ -148,5 +161,5 @@ def get_department_stats(
         by_course=by_course,
         by_issue_type=by_issue_type,
         oldest_unresolved=oldest_unresolved,
-        courses_without_lecturers=courses_without_lecturers
+        courses_without_advisors=courses_without_advisors
     )

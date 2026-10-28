@@ -20,16 +20,6 @@ const ISSUE_OPTIONS: { type: IssueType; label: string; desc: string }[] = [
     desc: 'Entire exam or total score is completely absent on the portal sheet.',
   },
   {
-    type: 'WRONG_SCORE',
-    label: 'Wrong Score Recorded',
-    desc: 'Recorded score on the portal differs from what was confirmed/awarded.',
-  },
-  {
-    type: 'WRONG_GRADE',
-    label: 'Wrong Letter Grade',
-    desc: 'Total score qualifies for a different letter grade (e.g. 64 should be B, but got F).',
-  },
-  {
     type: 'MISSING_CA',
     label: 'Missing Continuous Assessment (CA)',
     desc: 'Test or quiz score omitted from the 30/40% CA continuous assessment component.',
@@ -54,7 +44,6 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<number | ''>('');
   const [selectedIssues, setSelectedIssues] = useState<Record<string, boolean>>({});
-  const [claimedScores, setClaimedScores] = useState<Record<string, string>>({});
   const [description, setDescription] = useState<string>('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +72,6 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
 
   const resetForm = () => {
     setSelectedIssues({});
-    setClaimedScores({});
     setDescription('');
     setAttachments([]);
     if (attachmentInputRef.current) attachmentInputRef.current.value = '';
@@ -94,13 +82,6 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     setSelectedIssues((prev) => ({
       ...prev,
       [type]: !prev[type],
-    }));
-  };
-
-  const handleScoreChange = (type: IssueType, val: string) => {
-    setClaimedScores((prev) => ({
-      ...prev,
-      [type]: val,
     }));
   };
 
@@ -134,22 +115,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
     }
 
     // Build items payload
-    const items = [];
-    for (const issue of activeIssues) {
-      let scoreNum: number | null = null;
-      if (claimedScores[issue] && claimedScores[issue].trim() !== '') {
-        const parsed = parseFloat(claimedScores[issue]);
-        if (isNaN(parsed) || parsed < 0 || parsed > 100) {
-          setError(`Claimed score for ${issue.replace('_', ' ')} must be between 0 and 100.`);
-          return;
-        }
-        scoreNum = parsed;
-      }
-      items.push({
-        issue_type: issue,
-        claimed_score: scoreNum,
-      });
-    }
+    const items = activeIssues.map((issue) => ({ issue_type: issue }));
 
     setLoading(true);
     let complaintCreated = false;
@@ -196,7 +162,7 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
           <div>
             <h3 className="font-bold text-lg">Log Result Complaint</h3>
             <p className="text-xs text-blue-200">
-              Submit your result discrepancy for automated lecturer/HOD review
+              Submit your result discrepancy for review by your department part advisor
             </p>
           </div>
           <button
@@ -216,10 +182,10 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
             </div>
           )}
 
-          {/* Enrolled Course Picker */}
+          {/* Department course picker */}
           <div>
             <label className="block text-xs font-semibold uppercase text-slate-600 mb-1.5">
-              Select Enrolled Course <span className="text-rose-500">*</span>
+              Select Department Course <span className="text-rose-500">*</span>
             </label>
             {courses.length === 0 ? (
               <p className="text-sm text-slate-500 italic">No enrolled courses found for this session.</p>
@@ -232,13 +198,13 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
               >
                 {courses.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.code}: {c.title} ({c.lecturer_name || 'HOD Direct Route'})
+                    {c.code}: {c.title}
                   </option>
                 ))}
               </select>
             )}
             <p className="text-[11px] text-slate-400 mt-1">
-              You can only log complaints for courses you are officially registered for.
+              Courses assigned to your department and shared faculty courses appear here.
             </p>
           </div>
 
@@ -285,27 +251,6 @@ export const NewComplaintModal: React.FC<NewComplaintModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Claimed Score input if checked */}
-                    {isChecked && (
-                      <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="mt-2 pt-2 border-t border-blue-200/60 flex items-center gap-3"
-                      >
-                        <label className="text-xs font-medium text-blue-900 shrink-0">
-                          Claimed Score (0-100, optional):
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.5"
-                          placeholder="e.g. 65"
-                          value={claimedScores[opt.type] || ''}
-                          onChange={(e) => handleScoreChange(opt.type, e.target.value)}
-                          className="w-28 px-2.5 py-1 text-xs bg-white border border-blue-300 rounded focus:outline-hidden focus:ring-1 focus:ring-blue-600"
-                        />
-                      </div>
-                    )}
                   </div>
                 );
               })}

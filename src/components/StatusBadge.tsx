@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Clock, CheckCircle2, XCircle, AlertTriangle,
-  RotateCcw, ShieldAlert, FileText, Ban
+  RotateCcw, FileText, Ban
 } from 'lucide-react';
 import { ItemStatus } from '../types';
 
@@ -30,10 +30,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     colorClasses = 'bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-200';
     Icon = XCircle;
     label = 'Rejected';
-  } else if (norm.includes('ESCALATED')) {
-    colorClasses = 'bg-red-100 text-red-900 border-red-400 font-semibold shadow-xs ring-1 ring-red-300 animate-pulse';
-    Icon = ShieldAlert;
-    label = norm.includes('HOD') ? 'Escalated to HOD' : 'Escalated';
   } else if (norm.includes('NEEDS_INFO') || norm.includes('ACTION REQUIRED')) {
     colorClasses = 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-200 font-medium';
     Icon = AlertTriangle;

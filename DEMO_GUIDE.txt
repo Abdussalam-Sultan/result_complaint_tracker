@@ -1,209 +1,92 @@
 ================================================================================
-OAU STUDENT RESULT COMPLAINT TRACKER - DEMO GUIDE & TEST ACCOUNTS
-Department of Computer Science & Engineering
-Obafemi Awolowo University (OAU), Ile-Ife
+OAU RESULT COMPLAINT TRACKER - DEMO GUIDE
+Faculty of Computing and Engineering
 ================================================================================
 
-This document outlines all pre-seeded user accounts, roles, and a step-by-step
-guide to presenting the core problem, features, and workflows of the application.
+All seeded demo accounts use this password: password123
+
+Five departments:
+  - Computer Science with Mathematics
+  - Computer Engineering
+  - Software Engineering
+  - Information Systems
+  - Cyber Security
 
 --------------------------------------------------------------------------------
-1. GLOBAL LOGIN CREDENTIALS
---------------------------------------------------------------------------------
-All demo accounts use the standard password:
-  Password: password123
-
-To log in:
-  1. Open the application in your browser (e.g. http://localhost:3000).
-  2. Enter the Email and Password for any role below.
-  3. The system will automatically route you to the appropriate role dashboard.
-
---------------------------------------------------------------------------------
-2. USER ACCOUNTS DIRECTORY
+1. DEMO ACCOUNTS
 --------------------------------------------------------------------------------
 
-A. HEAD OF DEPARTMENT (HOD)
-  - Name: Prof. Olumide Adeleke
-  - Email: hod@oauife.edu.ng
-  - Role: HOD
-  - Responsibilities: Department-wide result oversight, escalated disputes,
-    unassigned course complaints, SLA compliance charts, executive overrides.
+Admin:
+  Name: Mrs. Funmilayo Alabi
+  Email: admin@oauife.edu.ng
+  Staff ID: OAU/FCE/STAFF/9000
+  Dashboard: /admin
+  Sign in at /staff/login with the staff ID.
+  Can assign or reassign a part advisor for each department, manage course
+  department memberships (including shared courses), and review evidence.
 
-B. ACADEMIC AFFAIRS / SYSTEM ADMINISTRATOR
-  - Name: Mrs. Funmilayo Alabi
-  - Email: admin@oauife.edu.ng
-  - Role: Admin
-  - Responsibilities: Course allocation to lecturers, user management, and
-    running the SLA policy engine.
+Part advisors:
+  Dr. Folashade Babatunde | advisor1@oauife.edu.ng | OAU/FCE/STAFF/0001
+  Dr. Emeka Okoye         | advisor2@oauife.edu.ng | OAU/FCE/STAFF/0002
+  Engr. Adeola Adelekan   | advisor3@oauife.edu.ng | OAU/FCE/STAFF/0003
+  Dr. Tola Akinola        | advisor4@oauife.edu.ng | OAU/FCE/STAFF/0004
+  Dr. Seyi Oladipo        | advisor5@oauife.edu.ng | OAU/FCE/STAFF/0005
+  Dr. Kemi Adebayo        | advisor6@oauife.edu.ng | OAU/FCE/STAFF/0006
+  Engr. Dele Okafor       | advisor7@oauife.edu.ng | OAU/FCE/STAFF/0007
+  Sign in at /staff/login with email, staff ID, and password.
+  An admin assigns each advisor to a department before complaint access.
 
-C. COURSE LECTURERS
-  1. Dr. Folashade Babatunde
-     - Email: lecturer1@oauife.edu.ng
-     - Assigned Courses:
-       * CSC 301: Database Design & Management (Mass Issue Cluster: 25 students)
-       * CSC 303: Operating Systems & Systems Programming
-  2. Dr. Emeka Okoye
-     - Email: lecturer2@oauife.edu.ng
-     - Assigned Courses:
-       * CSC 305: Data Communications & Networking
-       * CSC 401: Compiler Construction & Formal Languages (Script Remark Dispute)
-  3. Engr. Adeola Adelekan
-     - Email: lecturer3@oauife.edu.ng
-     - Assigned Course:
-       * CPE 307: Microprocessor Systems & Interfacing
+Featured students:
+  Ayomide Balogun | ayomide@oauife.edu.ng | CSC/2021/001
+    CSC 303 multi-issue complaint: missing CA and wrong grade.
+  Chiamaka Eze | chiamaka@oauife.edu.ng | CSC/2021/002
+    One of 25 students in the CSC 301 mass complaint group.
+  Victor Ekanem | victor@oauife.edu.ng | CSC/2021/026
+    Reopened script remark complaint returned to part-advisor review.
+  Grace Anyanwu | grace@oauife.edu.ng | CSC/2021/027
+    Complaint on a course shared across departments.
 
-D. FEATURED TEST STUDENTS (Matric Format: CSC/2021/XXX)
-  1. Ayomide Balogun (Multi-Issue Complaint Case)
-     - Email: ayomide@oauife.edu.ng
-     - Matric No: CSC/2021/001
-     - Demo Case: Has a single complaint with TWO distinct items on CSC 303:
-       (a) Missing Continuous Assessment (Under Review)
-       (b) Wrong Letter Grade (Submitted)
-  2. Chiamaka Eze (Mass Complaints Cluster Case)
-     - Email: chiamaka@oauife.edu.ng
-     - Matric No: CSC/2021/002
-     - Demo Case: One of 25 students whose CSC 301 continuous assessment score
-       was omitted. Demonstrates mass grouping.
-  3. Victor Ekanem (Dispute Rejection & HOD Escalation Case)
-     - Email: victor@oauife.edu.ng
-     - Matric No: CSC/2021/026
-     - Demo Case: Lodged a script remark request on CSC 401. The lecturer
-       rejected it, Victor disputed with evidence, and it escalated to HOD.
-  4. Grace Anyanwu (Unassigned Course Direct Routing Case)
-     - Email: grace@oauife.edu.ng
-     - Matric No: CSC/2021/027
-     - Demo Case: Lodged a complaint on CSC 415 (a course with no assigned
-       lecturer), which automatically bypassed lecturers and routed to the HOD.
-
-E. ADDITIONAL ENROLLED STUDENTS (All password123):
-  - Oluwaseun Adeyemi  : seun@oauife.edu.ng       | CSC/2021/003
-  - Babatunde Olatunji : babatunde@oauife.edu.ng  | CSC/2021/004
-  - Ngozi Okonkwo      : ngozi@oauife.edu.ng      | CSC/2021/005
-  - Ibrahim Danjuma    : ibrahim@oauife.edu.ng    | CSC/2021/006
-  - Yetunde Ogundimu   : yetunde@oauife.edu.ng    | CSC/2021/007
-  - Femi Adeleke       : femi@oauife.edu.ng       | CSC/2021/008
-  - Zainab Abubakar    : zainab@oauife.edu.ng     | CSC/2021/009
-  - Kehinde Sowore     : kehinde@oauife.edu.ng    | CSC/2021/010
-  - Damilola Fagbemi   : damilola@oauife.edu.ng   | CSC/2021/011
-  - Tobi Akinwunmi     : tobi@oauife.edu.ng       | CSC/2021/012
-  - Blessing Nwachukwu : blessing@oauife.edu.ng   | CSC/2021/013
-  - Olamide Bakare     : olamide@oauife.edu.ng    | CSC/2021/014
-  - Kazeem Bello       : kazeem@oauife.edu.ng     | CSC/2021/015
-  - Chinonso Obi       : chinonso@oauife.edu.ng   | CSC/2021/016
-  - Ronke Ajayi        : ronke@oauife.edu.ng      | CSC/2021/017
-  - Taiwo Omotayo      : taiwo@oauife.edu.ng      | CSC/2021/018
-  - Maryam Sanni       : maryam@oauife.edu.ng     | CSC/2021/019
-  - Emeka Umeh         : emeka.umeh@oauife.edu.ng | CSC/2021/020
-  - Sodiq Popoola      : sodiq@oauife.edu.ng      | CSC/2021/021
-  - Adaugo Nwosu       : adaugo@oauife.edu.ng     | CSC/2021/022
-  - Kunle Alade        : kunle@oauife.edu.ng      | CSC/2021/023
-  - Halima Musa        : halima@oauife.edu.ng     | CSC/2021/024
-  - Bolanle Shittu     : bolanle@oauife.edu.ng    | CSC/2021/025
-  - David Olaniyan     : david@oauife.edu.ng      | CSC/2021/028
-  - Aisha Garba        : aisha@oauife.edu.ng      | CSC/2021/029
-  - Samuel Osoba       : samuel@oauife.edu.ng     | CSC/2021/030
+All other seeded students also use password123. Matric numbers follow
+CSC/2021/XXX.
 
 --------------------------------------------------------------------------------
-3. STEP-BY-STEP DEMO PRESENTATION SCENARIOS
+2. WORKFLOW WALKTHROUGH
 --------------------------------------------------------------------------------
 
-SCENARIO 1: MASS COMPLAINTS CLUSTERING & BULK RESOLUTION
-  1. Log in as Lecturer 1:
-     - Email: lecturer1@oauife.edu.ng
-     - Password: password123
-  2. Notice the top section: "Mass Complaint Clusters (Grouped Issues)".
-     - There is an active card for "CSC 301: Missing Score Issue Cluster"
-       affecting 25 students.
-  3. Click "Review Group":
-     - View the list of all 25 affected students and their matric numbers.
-     - Select "Bulk Resolve".
-     - Enter an audit note: "CA score sheets retrieved from department vaults. All 25 students updated to awarded CA marks."
-     - Click "Execute Bulk RESOLVE".
-  4. Result:
-     - The group is marked RESOLVED.
-     - An individual StatusEvent is atomically written to all 25 students'
-       private timelines with the lecturer's explanation.
-     - All 25 students receive in-app notifications.
+A. Admin setup
+  1. Sign in as admin@oauife.edu.ng.
+  2. Open Departments to assign one registered part advisor to each department.
+  3. Open Course Catalog to create a course or assign an existing course to one
+     or more departments. Select All Departments to share it faculty-wide.
+  4. Open Staff & Students to inspect account departments and staff IDs.
 
-SCENARIO 2: ISOLATING A SINGLE STUDENT FROM A MASS CLUSTER
-  1. If a student's situation is unique within a mass issue, open any cluster
-     modal as a lecturer.
-  2. Find a specific student in the table and click "Remove from Group".
-  3. The student's complaint item is detached from the bulk cluster and
-     becomes an individual complaint item that can be reviewed independently.
+B. Student registration and dashboard
+  1. Open /register and select a department.
+  2. Submit the form; department and shared courses are assigned automatically.
+  3. Sign in as a student. The dashboard lists registered courses, complaints,
+     and the assigned department part advisor's email and staff ID.
+  4. Submit complaints only for registered courses.
 
-SCENARIO 3: MULTI-ISSUE COMPLAINT (INDEPENDENT LIFECYCLES)
-  1. Log in as Student Ayomide Balogun:
-     - Email: ayomide@oauife.edu.ng
-     - Password: password123
-  2. Look at Ayomide's CSC 303 complaint:
-     - Click on the complaint card to open the detail view.
-     - Item 1 (Missing CA) is in "UNDER REVIEW".
-     - Item 2 (Wrong Letter Grade) is in "SUBMITTED".
-     - Notice that resolving or changing Item 1 does NOT close Item 2.
-     - Overall status is dynamically derived: "IN PROGRESS (1 of 2 resolved)".
-     - Every transition has a clear chronological timeline with actor name and note.
+C. Part-advisor review
+  1. Open /staff/login and enter a seeded advisor email, staff ID, and password.
+  2. Review individual complaints or department-scoped course issue groups.
+  3. Resolve, reject with an academic reason, or request more information.
+  4. Students receive timeline updates and notifications.
 
-SCENARIO 4: DISPUTING A REJECTION & HOD ESCALATION (1-REOPEN LIMIT)
-  1. Log in as Student Victor Ekanem:
-     - Email: victor@oauife.edu.ng
-     - Password: password123
-  2. Open Victor's CSC 401 Script Remark complaint.
-  3. Inspect the audit timeline:
-     - Student submitted remark request.
-     - Lecturer Dr. Okoye reviewed and rejected it with reason: "No marking discrepancies found".
-     - Victor disputed the rejection: "Question 3 sub-part was not graded on script".
-     - Because of the dispute, it automatically escalated to the HOD.
-     - The policy badge now shows "Reopen limit reached (1 of 1 dispute allowed)".
-  4. Now log in as the HOD:
-     - Email: hod@oauife.edu.ng
-     - Password: password123
-  5. In the HOD dashboard, see Victor's dispute in the "Escalated Complaints Queue".
-  6. Click "Decide Escalation":
-     - Choose "Approve & Resolve" or "Final Rejection".
-     - Enter the official HOD board minute note.
-     - Click "Enforce HOD Decision".
-     - Victor's status updates, and a notification is dispatched to his portal.
-
-SCENARIO 5: UNASSIGNED COURSE AUTOMATIC HOD ROUTING
-  1. Log in as HOD (hod@oauife.edu.ng).
-  2. Notice the yellow alert banner: "Unassigned Courses Alert".
-     - Course CSC 415 has no assigned lecturer.
-  3. In the Escalated Queue, observe the complaint by Grace Anyanwu (CSC/2021/027):
-     - The complaint bypassed the lecturer stage entirely and was routed
-       directly to the HOD queue because the course is unassigned.
-
-SCENARIO 6: LOGGING A NEW COMPLAINT AS A STUDENT
-  1. Log in as any student (e.g. seun@oauife.edu.ng).
-  2. Click "+ Log Result Complaint".
-  3. Select an enrolled course from the dropdown (only registered courses appear).
-  4. Tick one or more issue types (e.g. "Missing Score", "Wrong Letter Grade").
-  5. Fill in optional claimed scores (0-100) and description.
-  6. Click "Submit Result Complaint".
-  7. Notice that duplicate prevention will block submitting the same issue on
-     the same course while an open one exists.
-
-SCENARIO 7: SLA COMPLIANCE & AUTO-ESCALATION CHECK (ADMIN)
-  1. Log in as Administrator:
-     - Email: admin@oauife.edu.ng
-     - Password: password123
-  2. Navigate to the "SLA Policy Engine" tab.
-  3. Click "Run SLA Policy Check".
-  4. Watch the engine evaluate open complaints:
-     - Inactive items under lecturer review (> 7 days) are automatically escalated to the HOD.
-     - Items pending student information (> 7 days) with no reply are auto-closed.
-     - A full audit summary report is displayed.
+D. Reopened complaint
+  1. Sign in as Victor Ekanem and open the CSC 401 script remark complaint.
+  2. Review the rejection and the student's justification in the timeline.
+  3. The item is returned to UNDER_REVIEW for the same department's part advisor.
 
 --------------------------------------------------------------------------------
-4. HOW TO RESET / RE-SEED POSTGRESQL DATABASE
+3. RESETTING DEMO DATA
 --------------------------------------------------------------------------------
-The application runs on a real SQL PostgreSQL database. To restore all complaints,
-users, enrollments, and demonstration scenarios to their clean initial state at any time:
-  npm run seed
 
-Database Configuration:
-  - Cross-platform embedded PostgreSQL with single-file snapshot persistence (database.tar.gz).
-    Works seamlessly on Windows, OneDrive folders, Mac, and Linux without file-locking issues.
-  - Or connect to an external PostgreSQL server by defining DATABASE_URL or
-    (PGHOST, PGUSER, PGPASSWORD, PGDATABASE) in the environment.
+Run `npm run seed` only against a disposable database. The seed script drops and
+recreates every table and all demo data.
+
+The API initializes the five departments on startup and includes a non-destructive
+migration for existing installations. Existing course records are attached to
+the original Computer Science with Mathematics department; the admin can change
+those memberships in Course Catalog.
 ================================================================================

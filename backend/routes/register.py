@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -9,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from backend.auth import get_password_hash
 from backend.database import get_db
-from backend.models import Course, Enrollment, User
+from backend.constants import DEPARTMENTS, SHARED_DEPARTMENT
+from backend.models import Course, CourseDepartment, Enrollment, User
 from backend.schemas import UserResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -27,28 +27,17 @@ class RegisterRequest(BaseModel):
     name: str = ""
     email: str = ""
     matric_no: str = ""
+    department: str = ""
     password: str = ""
-    course_ids: List[int] = []
 
 
 def _bad_request(message: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
 
 
-@router.get("/register/courses")
-def list_courses_for_registration(db: Session = Depends(get_db)):
-    """Public course list so a new student can pick the courses they are enrolled in."""
-    courses = db.query(Course).order_by(Course.code.asc()).all()
-    return [
-        {
-            "id": c.id,
-            "code": c.code,
-            "title": c.title,
-            "session": c.session,
-            "semester": c.semester,
-        }
-        for c in courses
-    ]
+@router.get("/departments")
+def list_departments():
+    return list(DEPARTMENTS)
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -57,8 +46,8 @@ def register_student(req: RegisterRequest, db: Session = Depends(get_db)):
     name = " ".join(req.name.split())
     email = req.email.strip().lower()
     matric_no = req.matric_no.strip().upper()
+    department = req.department.strip()
     password = req.password
-    course_ids = sorted({cid for cid in req.course_ids if cid > 0})
 
     # --- Validation -------------------------------------------------------
     if len(name) < 2 or len(name) > 120:
@@ -67,13 +56,12 @@ def register_student(req: RegisterRequest, db: Session = Depends(get_db)):
         raise _bad_request(f"Use your university email ending in {EMAIL_DOMAIN}.")
     if not MATRIC_PATTERN.match(matric_no):
         raise _bad_request("Enter your matric number in the format CSC/2021/001.")
+    if department not in DEPARTMENTS:
+        raise _bad_request("Select a valid department.")
     if len(password) < MIN_PASSWORD_LENGTH:
         raise _bad_request(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
     if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
         raise _bad_request("Password is too long. Use 72 bytes or fewer (about 72 characters).")
-    if not course_ids:
-        raise _bad_request("Select at least one course you are enrolled in.")
-
     # --- Duplicate checks -------------------------------------------------
     if db.query(User).filter(func.lower(User.email) == email).first():
         raise HTTPException(
@@ -86,10 +74,16 @@ def register_student(req: RegisterRequest, db: Session = Depends(get_db)):
             detail="An account with this matric number already exists.",
         )
 
-    # --- Make sure every selected course exists ---------------------------
-    found = db.query(Course.id).filter(Course.id.in_(course_ids)).count()
-    if found != len(course_ids):
-        raise _bad_request("One or more selected courses no longer exist. Refresh and try again.")
+    # Assign all department-specific courses and faculty-wide shared courses.
+    course_ids = [row[0] for row in (
+        db.query(Course.id)
+        .join(CourseDepartment)
+        .filter(
+            CourseDepartment.department_name.in_([department, SHARED_DEPARTMENT]),
+        )
+        .distinct()
+        .all()
+    )]
 
     # --- Create the user (role is always "student") and enrol them --------
     user = User(
@@ -97,6 +91,7 @@ def register_student(req: RegisterRequest, db: Session = Depends(get_db)):
         email=email,
         matric_no=matric_no,
         role="student",
+        department=department,
         password_hash=get_password_hash(password),
     )
     db.add(user)

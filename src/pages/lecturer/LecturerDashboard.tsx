@@ -11,7 +11,7 @@ import {
   UserMinus, MessageSquare, Search, ChevronRight, X
 } from 'lucide-react';
 
-export const LecturerDashboard: React.FC = () => {
+export const PartAdvisorDashboard: React.FC = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [groups, setGroups] = useState<IssueGroup[]>([]);
@@ -45,7 +45,7 @@ export const LecturerDashboard: React.FC = () => {
       setGroups(groupsRes.data);
       setComplaints(compsRes.data);
     } catch (err) {
-      console.error('Error fetching lecturer data:', err);
+      console.error('Error fetching part-advisor data:', err);
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ export const LecturerDashboard: React.FC = () => {
     try {
       await api.post(`/items/${activeItem.id}/action`, {
         action: actionType,
-        note: actionNote.trim() || `Status updated to ${actionType} by lecturer.`,
+        note: actionNote.trim() || `Status updated to ${actionType} by part advisor.`,
       });
       setActiveItem(null);
       setActionNote('');
@@ -155,7 +155,7 @@ export const LecturerDashboard: React.FC = () => {
       <div className="bg-[#002147] rounded-2xl p-6 sm:p-8 text-white shadow-lg border border-blue-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 bg-blue-500/20 text-blue-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-blue-500/40">
-            <span>Lecturer Result Command Portal</span>
+            <span>Part Advisor Result Portal</span>
             <span>•</span>
             <span>{courses.length} Assigned Course(s)</span>
           </div>
@@ -202,7 +202,7 @@ export const LecturerDashboard: React.FC = () => {
           <span className="text-2xl font-bold text-amber-600 mt-1 block">
             {allItems.filter((i) => ['SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFO'].includes(i.status)).length}
           </span>
-          <span className="text-[11px] text-amber-600">Pending lecturer action</span>
+          <span className="text-[11px] text-amber-600">Pending part-advisor action</span>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
@@ -239,15 +239,11 @@ export const LecturerDashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {groups.map((group) => {
               const isResolved = group.status === 'RESOLVED';
-              const isEscalated = group.status === 'ESCALATED';
-
               return (
                 <div
                   key={group.id}
                   className={`bg-white rounded-2xl border p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between ${
-                    isEscalated
-                      ? 'border-red-300 ring-2 ring-red-100 bg-red-50/20'
-                      : isResolved
+                    isResolved
                       ? 'border-emerald-200 bg-emerald-50/10'
                       : 'border-slate-200'
                   }`}
@@ -363,7 +359,6 @@ export const LecturerDashboard: React.FC = () => {
               <option value="SUBMITTED">Submitted</option>
               <option value="UNDER_REVIEW">Under Review</option>
               <option value="NEEDS_INFO">Needs Info</option>
-              <option value="ESCALATED">Escalated</option>
               <option value="RESOLVED">Resolved</option>
               <option value="REJECTED">Rejected</option>
             </select>
@@ -516,7 +511,6 @@ export const LecturerDashboard: React.FC = () => {
                     { id: 'RESOLVE', label: 'Bulk Resolve', color: 'hover:bg-emerald-600' },
                     { id: 'REQUEST_INFO', label: 'Ask Info from All', color: 'hover:bg-amber-600' },
                     { id: 'REJECT', label: 'Bulk Reject (Reason Required)', color: 'hover:bg-rose-600' },
-                    { id: 'ESCALATE', label: 'Escalate Group to HOD', color: 'hover:bg-red-700' },
                   ].map((btn) => (
                     <button
                       key={btn.id}
@@ -535,7 +529,7 @@ export const LecturerDashboard: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Lecturer's Explanation / Resolution Note <span className="text-rose-500">*</span>:
+                    Part Advisor's Explanation / Resolution Note <span className="text-rose-500">*</span>:
                   </label>
                   <textarea
                     rows={3}
@@ -706,7 +700,6 @@ export const LecturerDashboard: React.FC = () => {
                     { id: 'RESOLVE', label: 'Resolve Complaint' },
                     { id: 'REQUEST_INFO', label: 'Request Info' },
                     { id: 'REJECT', label: 'Reject' },
-                    { id: 'ESCALATE', label: 'Escalate to HOD' },
                   ].map((act) => (
                     <button
                       key={act.id}

@@ -183,11 +183,6 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
 
                     <div className="flex items-center gap-2">
                       <StatusBadge status={item.status} size="md" />
-                      {item.assigned_to_role === 'hod' && (
-                        <span className="text-[10px] bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded border border-purple-200">
-                          HOD Direct Queue
-                        </span>
-                      )}
                     </div>
                   </div>
 
@@ -204,7 +199,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                         className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
-                        Reply to Lecturer's Request
+                        Reply to Part Advisor's Request
                       </button>
                     )}
 
@@ -219,7 +214,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                         className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <ShieldAlert className="w-3.5 h-3.5" />
-                        Dispute Rejection (Escalate to HOD)
+                        Dispute Rejection
                       </button>
                     )}
 
@@ -252,7 +247,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                           {actionType === 'REPLY'
                             ? 'Provide Requested Information'
                             : actionType === 'REOPEN'
-                            ? 'Dispute Rejection & Escalate to HOD'
+                            ? 'Dispute Rejection'
                             : 'Confirm Voluntary Withdrawal'}
                         </span>
                         <button
@@ -281,7 +276,7 @@ export const ComplaintDetailModal: React.FC<ComplaintDetailModalProps> = ({
                             placeholder={
                               actionType === 'REPLY'
                                 ? 'State the exact test dates, submission details, or matric number clarifications...'
-                                : 'Explain why the rejection is incorrect with specific academic evidence for the HOD panel...'
+                                : 'Explain why the rejection is incorrect with specific academic evidence...'
                             }
                             className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-600"
                           />

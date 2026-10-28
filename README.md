@@ -1,8 +1,8 @@
 # OAU Student Result Complaint Tracker
 
-A full-stack, demo-ready complaint and escalation tracking application tailored for **Obafemi Awolowo University (OAU), Ile-Ife** (Department of Computer Science & Engineering). 
+A full-stack result complaint tracker for the **OAU Faculty of Computing and Engineering**, organized around five departments, department part advisors, and shared courses.
 
-It replaces physical score-chasing with an automated routing engine, mass complaint clustering, multi-issue status tracking, chronological audit trails, in-app notifications, and HOD escalations.
+It replaces physical score-chasing with department-aware complaint routing, mass complaint clustering, multi-issue status tracking, chronological audit trails, and in-app notifications.
 
 > **DEMO & TEST ACCOUNTS**: See [`DEMO_GUIDE.txt`](./DEMO_GUIDE.txt) for all test credentials, role walkthroughs, and step-by-step presentation scenarios. All accounts use password: `password123`.
 
@@ -61,19 +61,22 @@ npm run dev:frontend
 
 ## Pre-Seeded Demo Login Credentials
 All demo accounts use the standard password: **`password123`**. 
-*(The app also features a **1-Click Persona Switcher bar** at the top of the screen to switch roles instantly without logging in and out).*
+Part advisors and admins sign in at `/staff/login` with their university email, unique staff ID, and password. Staff IDs use the format `OAU/FCE/STAFF/0001`.
 
 | Role | Name | Email | Details / Scenario |
 |---|---|---|---|
-| **HOD** | Prof. Olumide Adeleke | `hod@oauife.edu.ng` | Executive oversight, escalated queue & charts |
-| **Lecturer 1** | Dr. Folashade Babatunde | `lecturer1@oauife.edu.ng` | Assigned: **CSC 301** (25-student mass group) & **CSC 303** |
-| **Lecturer 2** | Dr. Emeka Okoye | `lecturer2@oauife.edu.ng` | Assigned: **CSC 305** & **CSC 401** |
-| **Lecturer 3** | Engr. Adeola Adelekan | `lecturer3@oauife.edu.ng` | Assigned: **CPE 307** |
-| **Admin** | Mrs. Funmilayo Alabi | `admin@oauife.edu.ng` | Course allocation, user registry & Time Simulator |
+| **Part Advisor 1** | Dr. Folashade Babatunde | `advisor1@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0001` |
+| **Part Advisor 2** | Dr. Emeka Okoye | `advisor2@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0002` |
+| **Part Advisor 3** | Engr. Adeola Adelekan | `advisor3@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0003` |
+| **Part Advisor 4** | Dr. Tola Akinola | `advisor4@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0004` |
+| **Part Advisor 5** | Dr. Seyi Oladipo | `advisor5@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0005` |
+| **Part Advisor 6** | Dr. Kemi Adebayo | `advisor6@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0006`; available for admin assignment |
+| **Part Advisor 7** | Engr. Dele Okafor | `advisor7@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/0007`; available for admin assignment |
+| **Admin** | Mrs. Funmilayo Alabi | `admin@oauife.edu.ng` | Staff ID: `OAU/FCE/STAFF/9000`; department and course assignment |
 | **Student (Multi-issue)** | Ayomide Balogun | `ayomide@oauife.edu.ng` | Matric: `CSC/2021/001` (Missing CA + Wrong Grade) |
 | **Student (Mass issue)** | Chiamaka Eze | `chiamaka@oauife.edu.ng` | Matric: `CSC/2021/002` (Part of CSC 301 mass missing score) |
-| **Student (Escalated)** | Victor Ekanem | `victor@oauife.edu.ng` | Matric: `CSC/2021/026` (Disputed script remark in HOD queue) |
-| **Student (Unassigned)** | Grace Anyanwu | `grace@oauife.edu.ng` | Matric: `CSC/2021/027` (CSC 415 routes straight to HOD) |
+| **Student (Reopened)** | Victor Ekanem | `victor@oauife.edu.ng` | Matric: `CSC/2021/026` (Disputed script remark returned to review) |
+| **Student (Shared course)** | Grace Anyanwu | `grace@oauife.edu.ng` | Matric: `CSC/2021/027` |
 | *+26 Students* | *Enrolled 300/400 level* | `*@oauife.edu.ng` | *Full test population enrolled across courses* |
 
 ---
@@ -94,9 +97,9 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 
 ### 1. Mass & Overlapping Complaints Clustering
 - When multiple students log complaints with the same course + session + issue type (e.g. `MISSING_SCORE` on `CSC 301`), the engine automatically attaches them to an **IssueGroup** card.
-- The lecturer sees **"CSC 301: Missing Score Issue Cluster (25 students)"**.
-- The lecturer can perform **Bulk Resolution**, **Bulk Rejection**, or **Request Info in Bulk** with one atomic note that writes a individual `StatusEvent` to every student's private timeline and dispatches in-app notifications.
-- The lecturer can also **isolate a single student** from the group to review them individually.
+- The part advisor sees **"CSC 301: Missing Score Issue Cluster (25 students)"**.
+- The part advisor can perform **Bulk Resolution**, **Bulk Rejection**, or **Request Info in Bulk** with one note that writes a `StatusEvent` to every student's timeline and dispatches notifications.
+- The part advisor can also **isolate a single student** from the group to review them individually.
 
 ### 2. Multi-Issue Complaints on a Single Course
 - A student can lodge multiple issue items in one submission (e.g. `MISSING_CA` test score + `WRONG_GRADE`).
@@ -108,25 +111,23 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 - Students cannot have their complaint rejected without a stated academic reason.
 
 ### 4. Dispute Rejection & One-Reopen Limit
-- If a lecturer rejects a complaint, the student can click **"Dispute Rejection"** and supply justification.
-- Disputed rejections automatically escalate directly to the **HOD** for independent panel review.
+- If a part advisor rejects a complaint, the student can click **"Dispute Rejection"** and supply justification.
+- A disputed rejection returns to the same department part advisor for review. Each item can be reopened once.
 - University policy enforces a strict **one reopen limit** per item to prevent endless dispute loops.
 
-### 5. Automated Routing for Unassigned Courses
-- When a course has no designated lecturer (e.g. `CSC 415`), student complaints automatically bypass the lecturer stage and route directly into the **HOD's intake queue**.
-
-### 6. Time Passing Simulator (7-Day SLA Auto-Escalation)
-- On the **Admin Console**, click the **"Trigger Simulation (+7 Days)"** button.
-- Items inactive for > 7 days under lecturer review are automatically escalated to the HOD (`"Auto-escalated: Inactive for 7 days"`).
-- Items where the student was asked for info (`NEEDS_INFO`) but did not respond after 7 days are automatically closed as `REJECTED` (`"Auto-closed: No response from student"`).
+### 5. Five Departments and Shared Courses
+- Student signup requires one of the five department choices and shows courses assigned to that department plus shared courses.
+- The admin can assign or reassign a part advisor for each department, and add or update courses across one or more departments.
+- Students see their registered course list and their assigned part advisor's contact details on the dashboard.
 
 ---
 
 ## Registration Page & Homepage
 
 - **Homepage** (`src/pages/HomePage.tsx`) is shown at `/` to visitors who are not signed in, with **Sign in** and **Create account** buttons.
-- **Registration** (`src/pages/RegisterPage.tsx`, route `/register`) lets a student sign up with their name, matric number (`CSC/2021/001` format), `@oauife.edu.ng` email, password and enrolled courses. Staff accounts are created by the admin.
-- Registration is handled by the Python FastAPI route in `backend/routes/register.py`. Students are always created with the `student` role.
+- **Student registration** (`/register`) asks for name, matric number, university email, department, and password. Department and shared courses are assigned automatically.
+- **Staff registration and login** are available at `/staff/register` and `/staff/login`. Each staff account requires a unique staff ID in the `OAU/FCE/STAFF/0001` format; an admin must assign the account as a department's part advisor.
+- The API validates the department, course membership, and staff ID before creating accounts.
 
 ---
 

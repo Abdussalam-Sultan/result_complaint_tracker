@@ -47,21 +47,21 @@ const STAGES: Stage[] = [
   {
     status: 'Under review',
     tone: 'blue',
-    actor: 'Course lecturer',
+    actor: 'Part advisor',
     note: 'Opened your complaint and is checking the score sheet.',
     time: 'Mon 14:40',
   },
   {
     status: 'Information requested',
     tone: 'amber',
-    actor: 'Course lecturer',
+    actor: 'Part advisor',
     note: 'Please upload a photo of your marked test script.',
     time: 'Tue 10:05',
   },
   {
     status: 'Resolved',
     tone: 'emerald',
-    actor: 'Course lecturer',
+    actor: 'Part advisor',
     note: 'Score of 18/30 added to your record.',
     time: 'Wed 11:30',
   },
@@ -101,16 +101,16 @@ const SCENARIOS: Scenario[] = [
     tab: 'A score is missing',
     title: 'One student, one issue',
     summary:
-      'You lodge the complaint against the course. It goes straight to the lecturer who teaches it.',
+      'You lodge a complaint for an enrolled course. It goes to your department part advisor.',
     steps: [
       {
         icon: Send,
         who: 'Student',
-        text: 'Pick the course, choose the issue (missing CA, wrong score, wrong grade, script remark) and attach evidence.',
+        text: 'Pick the course, choose an issue (missing score, missing CA, script remark, or other) and attach evidence.',
       },
       {
         icon: Search,
-        who: 'Lecturer',
+        who: 'Part advisor',
         text: 'Reviews the complaint, asks for more information if needed, or resolves it with a written note.',
       },
       {
@@ -125,7 +125,7 @@ const SCENARIOS: Scenario[] = [
     tab: 'Many students, same issue',
     title: 'One fix for the whole class',
     summary:
-      'When many students report the same problem on the same course, the system groups them so the lecturer deals with it once.',
+      'When students in the same department report the same course issue, the system groups those reports for their part advisor.',
     steps: [
       {
         icon: Layers,
@@ -134,7 +134,7 @@ const SCENARIOS: Scenario[] = [
       },
       {
         icon: Users,
-        who: 'Lecturer',
+        who: 'Part advisor',
         text: 'Resolves, rejects or asks for information for the whole cluster with a single note. A single student can be pulled out for separate review.',
       },
       {
@@ -149,11 +149,11 @@ const SCENARIOS: Scenario[] = [
     tab: 'Complaint rejected',
     title: 'A rejection needs a reason',
     summary:
-      'Lecturers must give an academic reason when they reject. If you disagree, you can dispute it once.',
+      'Part advisors give an academic reason when they reject. If you disagree, you can dispute it once.',
     steps: [
       {
         icon: XCircle,
-        who: 'Lecturer',
+        who: 'Part advisor',
         text: 'Rejects the complaint and states the academic reason on your timeline.',
       },
       {
@@ -161,33 +161,23 @@ const SCENARIOS: Scenario[] = [
         who: 'Student',
         text: 'Disputes the rejection with a justification. Each issue can be reopened one time only.',
       },
-      {
-        icon: Building2,
-        who: 'Head of Department',
-        text: 'A disputed rejection goes directly to the HOD for independent review.',
-      },
     ],
   },
   {
     id: 'silence',
     tab: 'Nobody responds',
     title: 'Complaints never sit in limbo',
-    summary: 'Deadlines are built in, so a complaint always has someone responsible for it.',
+    summary: 'Each complaint belongs to the student’s department and its assigned part advisor.',
     steps: [
       {
-        icon: Timer,
-        who: 'After 7 days',
-        text: 'If a lecturer has not acted, the complaint is escalated to the HOD automatically.',
-      },
-      {
         icon: Clock,
-        who: 'After 7 days',
-        text: 'If information was requested from you and you do not reply, the item is closed as rejected.',
+        who: 'Student',
+        text: 'Reply to a request for more information from your complaint timeline.',
       },
       {
-        icon: Building2,
-        who: 'No lecturer assigned',
-        text: 'Complaints for a course without a lecturer skip that stage and go to the HOD.',
+        icon: ShieldCheck,
+        who: 'Faculty admin',
+        text: 'Assigns or reassigns the part advisor for each department.',
       },
     ],
   },
@@ -215,26 +205,15 @@ const ROLES: Role[] = [
     ],
   },
   {
-    id: 'lecturer',
-    label: 'Lecturer',
+    id: 'part_advisor',
+    label: 'Part Advisor',
     icon: FileText,
     headline: 'Everything for your courses in one queue.',
     points: [
-      'See complaints for the courses you teach, grouped into clusters where students share an issue',
+      'See complaints for your assigned department, grouped where students share an issue',
       'Resolve, reject or request information in bulk with one note',
       'Isolate a single student from a cluster to review them separately',
       'Rejections require a reason, so students always get an explanation',
-    ],
-  },
-  {
-    id: 'hod',
-    label: 'Head of Department',
-    icon: Building2,
-    headline: 'Oversight without chasing people.',
-    points: [
-      'Receive escalated complaints, disputed rejections and complaints for courses with no lecturer',
-      'See open, escalated and resolved counts by course and by issue type',
-      'Track how long complaints take to resolve and which are oldest',
     ],
   },
   {
@@ -243,9 +222,9 @@ const ROLES: Role[] = [
     icon: ShieldCheck,
     headline: 'Keep courses and people in order.',
     points: [
-      'Allocate lecturers to courses so complaints route to the right person',
+      'Assign or reassign each department’s part advisor',
+      'View department courses and shared offerings',
       'Manage the user registry',
-      'Preview the 7-day escalation rules with the time simulator',
     ],
   },
 ];
@@ -449,7 +428,7 @@ export const HomePage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 lg:py-24 grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-center">
           <motion.div variants={heroContainer} initial="hidden" animate="show" className="space-y-6">
             <motion.p variants={heroItem} className="text-sm text-blue-200">
-              Obafemi Awolowo University, Ile-Ife • Department of Computer Science & Engineering
+              Obafemi Awolowo University, Ile-Ife • Faculty of Computing and Engineering
             </motion.p>
             <motion.h1
               variants={heroItem}
@@ -458,7 +437,7 @@ export const HomePage: React.FC = () => {
               Result looks wrong? Follow your complaint until it is fixed.
             </motion.h1>
             <motion.p variants={heroItem} className="text-base sm:text-lg text-blue-100 max-w-xl leading-relaxed">
-              Report a missing score, a wrong grade or a script remark request. See who is reviewing it, what they
+              Report a missing score, a missing continuous assessment or a script remark request. See who is reviewing it, what they
               said and what happens next, without walking from office to office.
             </motion.p>
             <motion.div variants={heroItem} className="pt-2">

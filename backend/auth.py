@@ -8,7 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import User
+from backend.models import Department, User
 
 SECRET_KEY = os.getenv("JWT_SECRET", "oau-complaint-tracker-secret-key-2026-very-secure")
 ALGORITHM = "HS256"
@@ -74,6 +74,25 @@ def require_roles(allowed_roles: List[str]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Access denied for role '{current_user.role}'. Required: {allowed_roles}",
+            )
+        return current_user
+    return role_checker
+
+
+def require_assigned_part_advisor_or_admin():
+    def role_checker(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if current_user.role == "admin":
+            return current_user
+        if current_user.role != "part_advisor":
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        department = db.query(Department).filter(Department.name == current_user.department).first()
+        if not department or department.part_advisor_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account must be assigned as the department part advisor by an admin.",
             )
         return current_user
     return role_checker

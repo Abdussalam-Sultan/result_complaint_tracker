@@ -14,6 +14,7 @@ export const StudentDashboard: React.FC = () => {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [advisor, setAdvisor] = useState<{ name: string; email: string; staff_id?: string | null; department: string } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
@@ -22,12 +23,14 @@ export const StudentDashboard: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [compsRes, coursesRes] = await Promise.all([
+      const [compsRes, coursesRes, advisorRes] = await Promise.all([
         api.get('/complaints'),
         api.get('/courses'),
+        api.get('/auth/advisor'),
       ]);
       setComplaints(compsRes.data);
       setEnrolledCourses(coursesRes.data);
+      setAdvisor(advisorRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,7 +45,6 @@ export const StudentDashboard: React.FC = () => {
   const filteredComplaints = complaints.filter((c) => {
     if (statusFilter === 'ALL') return true;
     if (statusFilter === 'ACTION_REQUIRED') return c.overall_status.includes('ACTION REQUIRED') || c.overall_status.includes('NEEDS_INFO');
-    if (statusFilter === 'ESCALATED') return c.overall_status.includes('ESCALATED');
     if (statusFilter === 'RESOLVED') return c.overall_status.includes('RESOLVED');
     if (statusFilter === 'OPEN') return !c.overall_status.includes('RESOLVED') && !c.overall_status.includes('CLOSED');
     return true;
@@ -71,6 +73,41 @@ export const StudentDashboard: React.FC = () => {
           <span>Log Result Complaint</span>
         </button>
       </div>
+
+      <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Registered Courses</h2>
+              <p className="text-xs text-slate-500 mt-1">{enrolledCourses.length} courses in your current registration</p>
+            </div>
+            <BookOpen className="w-5 h-5 text-blue-700" />
+          </div>
+          {enrolledCourses.length ? (
+            <ul className="divide-y divide-slate-100 sm:grid sm:grid-cols-2 sm:divide-y-0">
+              {enrolledCourses.map((course) => (
+                <li key={course.id} className="px-5 py-3 border-b border-slate-100 sm:border-r">
+                  <span className="font-mono text-xs font-bold text-slate-900">{course.code}</span>
+                  <p className="text-xs text-slate-600 mt-1">{course.title}</p>
+                  <p className="text-[11px] text-slate-400 mt-1">{course.session} · {course.semester}</p>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="px-5 py-6 text-xs text-slate-500">No registered courses were found.</p>}
+        </div>
+
+        <aside className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-sm font-bold text-slate-900">Your Part Advisor</h2>
+          <p className="text-xs text-slate-500 mt-1">{user?.department}</p>
+          {advisor ? (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold text-slate-900">{advisor.name}</p>
+              <a className="block text-xs text-blue-700 hover:underline break-all" href={`mailto:${advisor.email}`}>{advisor.email}</a>
+              
+            </div>
+          ) : <p className="mt-4 text-xs text-slate-500">No part advisor is assigned yet. Contact the faculty admin.</p>}
+        </aside>
+      </section>
 
       {/* Summary KPI Badges */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -114,7 +151,7 @@ export const StudentDashboard: React.FC = () => {
           <div>
             <h2 className="text-base font-bold text-slate-900">My Result Complaints</h2>
             <p className="text-xs text-slate-500">
-              Live tracking and automated escalation trail for your submitted scores
+              Live status tracking for your submitted result complaints
             </p>
           </div>
 
@@ -132,7 +169,6 @@ export const StudentDashboard: React.FC = () => {
                 { id: 'ALL', label: 'All' },
                 { id: 'OPEN', label: 'Active' },
                 { id: 'ACTION_REQUIRED', label: 'Needs Reply' },
-                { id: 'ESCALATED', label: 'Escalated' },
                 { id: 'RESOLVED', label: 'Resolved' },
               ].map((tab) => (
                 <button

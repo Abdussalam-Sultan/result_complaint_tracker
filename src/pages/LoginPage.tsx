@@ -30,8 +30,7 @@ export const LoginPage: React.FC = () => {
 
   const redirectByRole = (role: string) => {
     if (role === 'student') navigate('/student');
-    else if (role === 'lecturer') navigate('/lecturer');
-    else if (role === 'hod') navigate('/hod');
+    else if (role === 'part_advisor') navigate('/advisor');
     else if (role === 'admin') navigate('/admin');
     else navigate('/student');
   };
@@ -112,17 +111,23 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="text-center space-y-1.5 text-xs text-slate-500">
-            <p>
-              New student?{' '}
-              <Link to="/register" className="font-semibold text-blue-700 hover:underline">
-                Create an account
-              </Link>
-            </p>
-            <p>
-              <Link to="/" className="hover:underline">
-                Back to home
-              </Link>
+          <div className="pt-4 border-t border-slate-100">
+            <div className="grid grid-cols-2 divide-x divide-slate-200 text-center text-xs">
+              <p className="px-2 text-slate-500">
+                New student?{' '}
+                <Link to="/register" className="font-semibold text-blue-700 hover:underline">
+                  Create account
+                </Link>
+              </p>
+              <p className="px-2 text-slate-500">
+                Staff?{' '}
+                <Link to="/staff/login" className="font-semibold text-blue-700 hover:underline">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+            <p className="text-center text-[11px] text-slate-400 mt-3">
+              <Link to="/" className="hover:text-slate-600 hover:underline">Back to home</Link>
             </p>
           </div>
 

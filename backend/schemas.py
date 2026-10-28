@@ -3,7 +3,7 @@ from typing import Optional, List
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # --- Enums / Valid Constants ---
-VALID_ROLES = {"student", "lecturer", "hod", "admin"}
+VALID_ROLES = {"student", "part_advisor", "admin"}
 VALID_ISSUE_TYPES = {
     "MISSING_SCORE",
     "WRONG_SCORE",
@@ -18,7 +18,6 @@ VALID_STATUSES = {
     "NEEDS_INFO",
     "RESOLVED",
     "REJECTED",
-    "ESCALATED",
     "WITHDRAWN",
 }
 
@@ -37,7 +36,8 @@ class UserBase(BaseModel):
     email: str
     role: str
     matric_no: Optional[str] = None
-    department: Optional[str] = "Computer Science & Engineering"
+    staff_id: Optional[str] = None
+    department: Optional[str] = "Computer Science with Mathematics"
 
 class UserCreate(UserBase):
     password: str
@@ -50,7 +50,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -61,17 +61,19 @@ class CourseBase(BaseModel):
     title: str
     session: str = "2023/2024"
     semester: str = "Harmattan"
-    lecturer_id: Optional[int] = None
+    departments: List[str] = []
 
 class CourseCreate(CourseBase):
     pass
 
-class CourseAssignLecturer(BaseModel):
-    lecturer_id: Optional[int] = None
+class CourseDepartmentsUpdate(BaseModel):
+    departments: List[str]
+
+class PartAdvisorAssignment(BaseModel):
+    advisor_id: Optional[int] = None
 
 class CourseResponse(CourseBase):
     id: int
-    lecturer_name: Optional[str] = None
     enrollment_count: Optional[int] = 0
 
     class Config:
@@ -138,31 +140,31 @@ class IssueGroupResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     student_count: int = 0
-    assigned_lecturer_id: Optional[int] = None
-    assigned_lecturer_name: Optional[str] = None
+    assigned_advisor_id: Optional[int] = None
+    assigned_advisor_name: Optional[str] = None
     items: List[ComplaintItemResponse] = []
 
     class Config:
         from_attributes = True
 
 class GroupActionRequest(BaseModel):
-    action: str  # RESOLVE, REJECT, REQUEST_INFO, ESCALATE
+    action: str  # RESOLVE, REJECT, REQUEST_INFO
     note: str
 
     @field_validator("action")
     def validate_action(cls, v):
-        allowed = {"RESOLVE", "REJECT", "REQUEST_INFO", "ESCALATE"}
+        allowed = {"RESOLVE", "REJECT", "REQUEST_INFO"}
         if v.upper() not in allowed:
             raise ValueError(f"Action must be one of {allowed}")
         return v.upper()
 
 class ItemActionRequest(BaseModel):
-    action: str  # REVIEW, RESOLVE, REJECT, REQUEST_INFO, ESCALATE, OVERRIDE
+    action: str  # REVIEW, RESOLVE, REJECT, REQUEST_INFO
     note: str
 
     @field_validator("action")
     def validate_action(cls, v):
-        allowed = {"REVIEW", "RESOLVE", "REJECT", "REQUEST_INFO", "ESCALATE", "OVERRIDE"}
+        allowed = {"REVIEW", "RESOLVE", "REJECT", "REQUEST_INFO"}
         if v.upper() not in allowed:
             raise ValueError(f"Action must be one of {allowed}")
         return v.upper()
@@ -237,12 +239,11 @@ class NotificationResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# --- HOD & Admin Overview / Stats ---
+# --- Part Advisor & Admin Overview / Stats ---
 class DepartmentOverviewStats(BaseModel):
     total_complaints: int
     total_items: int
     pending_count: int
-    escalated_count: int
     resolved_count: int
     rejected_count: int
     avg_resolution_hours: float
@@ -250,7 +251,7 @@ class DepartmentOverviewStats(BaseModel):
     by_course: List[dict]
     by_issue_type: List[dict]
     oldest_unresolved: List[ComplaintItemResponse]
-    courses_without_lecturers: List[dict]
+    courses_without_advisors: List[dict]
 
 class SimulationRequest(BaseModel):
     days_to_advance: int = 7

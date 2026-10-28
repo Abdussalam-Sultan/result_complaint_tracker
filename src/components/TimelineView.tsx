@@ -23,9 +23,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events }) => {
 
   const getActorIcon = (role?: string) => {
     switch (role?.toLowerCase()) {
-      case 'hod':
-        return <Shield className="w-4 h-4 text-purple-600" />;
-      case 'lecturer':
+      case 'part_advisor':
         return <GraduationCap className="w-4 h-4 text-blue-600" />;
       case 'student':
         return <UserIcon className="w-4 h-4 text-emerald-600" />;

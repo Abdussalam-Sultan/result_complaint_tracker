@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from backend.database import engine, SessionLocal, Base
+from backend.constants import ADMIN_STAFF_ID, DEPARTMENTS, SHARED_DEPARTMENT
 from backend.models import (
-    User, Course, Enrollment, Complaint, ComplaintItem,
-    IssueGroup, StatusEvent, Notification
+    User, Course, CourseDepartment, Department, Enrollment, Complaint,
+    ComplaintItem, IssueGroup, StatusEvent, Notification
 )
 from backend.auth import get_password_hash
 from backend.helpers import derive_complaint_status
@@ -22,52 +23,54 @@ def seed_database():
 
     default_password = "password123"
     hashed_pwd = get_password_hash(default_password)
+    for department_name in (*DEPARTMENTS, SHARED_DEPARTMENT):
+        db.add(Department(name=department_name))
+    db.flush()
 
     print("Seeding Users...")
-    # 1. HOD
-    hod = User(
-        name="Prof. Olumide Adeleke",
-        email="hod@oauife.edu.ng",
-        role="hod",
-        department="Computer Science & Engineering",
-        password_hash=hashed_pwd
-    )
-    db.add(hod)
-
-    # 2. Admin
     admin = User(
         name="Mrs. Funmilayo Alabi (Academic Affairs)",
         email="admin@oauife.edu.ng",
+        staff_id=ADMIN_STAFF_ID,
         role="admin",
         department="Academic Affairs / Faculty Office",
         password_hash=hashed_pwd
     )
     db.add(admin)
 
-    # 3. Lecturers
-    lecturer1 = User(
+    # Part advisors are assigned by the admin to one department each.
+    advisor1 = User(
         name="Dr. Folashade Babatunde",
-        email="lecturer1@oauife.edu.ng",
-        role="lecturer",
-        department="Computer Science & Engineering",
+        email="advisor1@oauife.edu.ng",
+        staff_id="OAU/STAFF/0001",
+        role="part_advisor",
+        department=DEPARTMENTS[0],
         password_hash=hashed_pwd
     )
-    lecturer2 = User(
+    advisor2 = User(
         name="Dr. Emeka Okoye",
-        email="lecturer2@oauife.edu.ng",
-        role="lecturer",
-        department="Computer Science & Engineering",
+        email="advisor2@oauife.edu.ng",
+        staff_id="OAU/STAFF/0002",
+        role="part_advisor",
+        department=DEPARTMENTS[1],
         password_hash=hashed_pwd
     )
-    lecturer3 = User(
+    advisor3 = User(
         name="Engr. Adeola Adelekan",
-        email="lecturer3@oauife.edu.ng",
-        role="lecturer",
-        department="Computer Science & Engineering",
+        email="advisor3@oauife.edu.ng",
+        staff_id="OAU/STAFF/0003",
+        role="part_advisor",
+        department=DEPARTMENTS[2],
         password_hash=hashed_pwd
     )
-    db.add_all([lecturer1, lecturer2, lecturer3])
+    advisor4 = User(name="Dr. Tola Akinola", email="advisor4@oauife.edu.ng", staff_id="OAU/STAFF/0004", role="part_advisor", department=DEPARTMENTS[3], password_hash=hashed_pwd)
+    advisor5 = User(name="Dr. Seyi Oladipo", email="advisor5@oauife.edu.ng", staff_id="OAU/STAFF/0005", role="part_advisor", department=DEPARTMENTS[4], password_hash=hashed_pwd)
+    advisor6 = User(name="Dr. Kemi Adebayo", email="advisor6@oauife.edu.ng", staff_id="OAU/STAFF/0006", role="part_advisor", department=DEPARTMENTS[0], password_hash=hashed_pwd)
+    advisor7 = User(name="Engr. Dele Okafor", email="advisor7@oauife.edu.ng", staff_id="OAU/STAFF/0007", role="part_advisor", department=DEPARTMENTS[1], password_hash=hashed_pwd)
+    db.add_all([advisor1, advisor2, advisor3, advisor4, advisor5, advisor6, advisor7])
     db.flush()
+    for department_name, advisor in zip(DEPARTMENTS, [advisor1, advisor2, advisor3, advisor4, advisor5]):
+        db.query(Department).filter(Department.name == department_name).update({Department.part_advisor_id: advisor.id})
 
     # 4. 30 Students with authentic Nigerian names and OAU matric numbers (CSC/2021/XXX)
     student_data = [
@@ -104,13 +107,13 @@ def seed_database():
     ]
 
     students = []
-    for name, matric, email in student_data:
+    for index, (name, matric, email) in enumerate(student_data):
         s = User(
             name=name,
             email=email,
             matric_no=matric,
             role="student",
-            department="Computer Science & Engineering",
+            department=DEPARTMENTS[index % len(DEPARTMENTS)],
             password_hash=hashed_pwd
         )
         students.append(s)
@@ -119,45 +122,42 @@ def seed_database():
     db.flush()
 
     print("Seeding Courses...")
-    # 6 Courses (including 1 unassigned course to show direct routing to HOD)
+    # Shared courses plus one department-specific course per department.
     course_data = [
-        ("CSC 301", "Database Design & Management", lecturer1.id),
-        ("CSC 303", "Operating Systems & Systems Programming", lecturer1.id),
-        ("CSC 305", "Data Communications & Networking", lecturer2.id),
-        ("CSC 401", "Compiler Construction & Formal Languages", lecturer2.id),
-        ("CPE 307", "Microprocessor Systems & Interfacing", lecturer3.id),
-        ("CSC 415", "Software Engineering & Architecture", None),  # Unassigned -> Routes to HOD!
+        ("CSC 301", "Database Design & Management", [SHARED_DEPARTMENT]),
+        ("CSC 303", "Operating Systems & Systems Programming", [SHARED_DEPARTMENT]),
+        ("CSC 305", "Data Communications & Networking", [SHARED_DEPARTMENT]),
+        ("CSC 401", "Compiler Construction & Formal Languages", [SHARED_DEPARTMENT]),
+        ("CPE 307", "Microprocessor Systems & Interfacing", [SHARED_DEPARTMENT]),
+        ("CSC 415", "Software Engineering & Architecture", [SHARED_DEPARTMENT]),
+        ("CSC 101", "Computing with Mathematics", [DEPARTMENTS[0]]),
+        ("CPE 101", "Computer Engineering Fundamentals", [DEPARTMENTS[1]]),
+        ("SWE 101", "Software Engineering Fundamentals", [DEPARTMENTS[2]]),
+        ("INS 101", "Information Systems Fundamentals", [DEPARTMENTS[3]]),
+        ("CYB 101", "Cyber Security Fundamentals", [DEPARTMENTS[4]]),
     ]
 
     courses = []
-    for code, title, lec_id in course_data:
+    for code, title, departments in course_data:
         c = Course(
             code=code,
             title=title,
             session="2023/2024",
             semester="Harmattan",
-            lecturer_id=lec_id
         )
         courses.append(c)
         db.add(c)
+        for department_name in departments:
+            db.add(CourseDepartment(course=c, department_name=department_name))
 
     db.flush()
 
     print("Seeding Enrollments...")
-    # Enroll all 30 students in CSC 301 and CSC 303
-    # Enroll students 1-20 in CSC 305 and CSC 401
-    # Enroll students 20-30 in CPE 307 and CSC 415
     for s in students:
-        db.add(Enrollment(student_id=s.id, course_id=courses[0].id))
-        db.add(Enrollment(student_id=s.id, course_id=courses[1].id))
-
-    for s in students[:20]:
-        db.add(Enrollment(student_id=s.id, course_id=courses[2].id))
-        db.add(Enrollment(student_id=s.id, course_id=courses[3].id))
-
-    for s in students[15:]:
-        db.add(Enrollment(student_id=s.id, course_id=courses[4].id))
-        db.add(Enrollment(student_id=s.id, course_id=courses[5].id))
+        for course in courses:
+            offered_to = {membership.department_name for membership in course.departments}
+            if SHARED_DEPARTMENT in offered_to or s.department in offered_to:
+                db.add(Enrollment(student_id=s.id, course_id=course.id))
 
     db.flush()
 
@@ -165,19 +165,24 @@ def seed_database():
 
     # SCENARIO A: Mass Complaints on CSC 301 (Missing Score, 25 students affected)
     csc301 = courses[0]
-    mass_group_missing = IssueGroup(
-        course_id=csc301.id,
-        issue_type="MISSING_SCORE",
-        title="CSC 301: Missing Score Issue Cluster (Batch Continuous Assessment)",
-        status="OPEN",
-        created_at=datetime.utcnow() - timedelta(days=3)
-    )
-    db.add(mass_group_missing)
-    db.flush()
+    mass_groups = {}
 
     # Create complaints for the first 25 students joining this mass group
     for i in range(25):
         s = students[i]
+        mass_group_missing = mass_groups.get(s.department)
+        if not mass_group_missing:
+            mass_group_missing = IssueGroup(
+                course_id=csc301.id,
+                department=s.department,
+                issue_type="MISSING_SCORE",
+                title=f"CSC 301: Missing Score Issue Cluster ({s.department})",
+                status="OPEN",
+                created_at=datetime.utcnow() - timedelta(days=3),
+            )
+            db.add(mass_group_missing)
+            db.flush()
+            mass_groups[s.department] = mass_group_missing
         c = Complaint(
             student_id=s.id,
             course_id=csc301.id,
@@ -194,7 +199,7 @@ def seed_database():
             status="SUBMITTED",
             claimed_score=68.0,
             group_id=mass_group_missing.id,
-            assigned_to_role="lecturer",
+            assigned_to_role="part_advisor",
             created_at=c.created_at,
             updated_at=c.created_at
         )
@@ -217,6 +222,7 @@ def seed_database():
     csc303 = courses[1]
     group_wrong_grade = IssueGroup(
         course_id=csc303.id,
+        department=DEPARTMENTS[0],
         issue_type="WRONG_GRADE",
         title="CSC 303: Wrong Letter Grade Computation Cluster",
         status="OPEN",
@@ -243,7 +249,7 @@ def seed_database():
         status="UNDER_REVIEW",
         claimed_score=28.0,
         group_id=None,
-        assigned_to_role="lecturer",
+        assigned_to_role="part_advisor",
         created_at=datetime.utcnow() - timedelta(days=2),
         updated_at=datetime.utcnow() - timedelta(days=1)
     )
@@ -262,8 +268,8 @@ def seed_database():
         complaint_item_id=item_ca.id,
         from_status="SUBMITTED",
         to_status="UNDER_REVIEW",
-        actor_id=lecturer1.id,
-        note="Lecturer verifying CA attendance records with course representative.",
+        actor_id=advisor1.id,
+        note="Part advisor verifying CA attendance records with course representative.",
         created_at=datetime.utcnow() - timedelta(days=1)
     ))
 
@@ -274,7 +280,7 @@ def seed_database():
         status="SUBMITTED",
         claimed_score=64.0,
         group_id=group_wrong_grade.id,
-        assigned_to_role="lecturer",
+        assigned_to_role="part_advisor",
         created_at=datetime.utcnow() - timedelta(days=2),
         updated_at=datetime.utcnow() - timedelta(days=2)
     )
@@ -290,15 +296,15 @@ def seed_database():
         created_at=datetime.utcnow() - timedelta(days=2)
     ))
 
-    # SCENARIO C: Complaint Already Escalated to HOD
+    # SCENARIO C: Reopened complaint returned to part-advisor review
     # Student #25 (Victor Ekanem) on CSC 401
     csc401 = courses[3]
     esc_student = students[25]
     esc_comp = Complaint(
         student_id=esc_student.id,
         course_id=csc401.id,
-        description="Script remark request. Submitted remark request 12 days ago; lecturer was unresponsive and dispute was lodged.",
-        overall_status="ESCALATED TO HOD (1 item)",
+        description="Script remark request. A rejection was disputed and returned for part-advisor review.",
+        overall_status="UNDER REVIEW",
         created_at=datetime.utcnow() - timedelta(days=12)
     )
     db.add(esc_comp)
@@ -307,10 +313,10 @@ def seed_database():
     esc_item = ComplaintItem(
         complaint_id=esc_comp.id,
         issue_type="SCRIPT_REMARK_REQUEST",
-        status="ESCALATED",
+        status="UNDER_REVIEW",
         claimed_score=75.0,
         group_id=None,
-        assigned_to_role="hod",
+        assigned_to_role="part_advisor",
         reopened=True,
         reopen_count=1,
         created_at=datetime.utcnow() - timedelta(days=12),
@@ -331,7 +337,7 @@ def seed_database():
         complaint_item_id=esc_item.id,
         from_status="SUBMITTED",
         to_status="UNDER_REVIEW",
-        actor_id=lecturer2.id,
+        actor_id=advisor1.id,
         note="Script retrieval initiated from department exam vault.",
         created_at=datetime.utcnow() - timedelta(days=10)
     ))
@@ -339,20 +345,20 @@ def seed_database():
         complaint_item_id=esc_item.id,
         from_status="UNDER_REVIEW",
         to_status="REJECTED",
-        actor_id=lecturer2.id,
+        actor_id=advisor1.id,
         note="Remark rejected: Examiner found no marking discrepancies.",
         created_at=datetime.utcnow() - timedelta(days=5)
     ))
     db.add(StatusEvent(
         complaint_item_id=esc_item.id,
         from_status="REJECTED",
-        to_status="ESCALATED",
+        to_status="UNDER_REVIEW",
         actor_id=esc_student.id,
-        note="Student disputed rejection with evidence of question 3 sub-part marking error. Escalated to HOD for independent panel re-assessment.",
+        note="Student disputed rejection with evidence of question 3 sub-part marking error. Returned to the part advisor for review.",
         created_at=datetime.utcnow() - timedelta(days=3)
     ))
 
-    # SCENARIO D: Several Resolved Complaints (for HOD analytics & charts)
+    # SCENARIO D: Several resolved complaints for department analytics
     resolved_pairs = [
         (students[2], courses[0], "WRONG_SCORE", 55.0, 72.0, 5, 2),
         (students[3], courses[1], "MISSING_SCORE", 0.0, 65.0, 6, 1),
@@ -377,7 +383,7 @@ def seed_database():
             status="RESOLVED",
             claimed_score=new_s,
             group_id=None,
-            assigned_to_role="lecturer",
+            assigned_to_role="part_advisor",
             created_at=datetime.utcnow() - timedelta(days=created_days_ago),
             updated_at=datetime.utcnow() - timedelta(days=resolved_days_ago)
         )
@@ -396,21 +402,21 @@ def seed_database():
             complaint_item_id=res_item.id,
             from_status="SUBMITTED",
             to_status="UNDER_REVIEW",
-            actor_id=course_obj.lecturer_id,
-            note="Lecturer retrieved original score sheet and cross-referenced with attendance roster.",
+            actor_id=advisor1.id,
+            note="Part advisor retrieved the original score sheet and cross-referenced the attendance roster.",
             created_at=datetime.utcnow() - timedelta(days=created_days_ago - 1)
         ))
         db.add(StatusEvent(
             complaint_item_id=res_item.id,
             from_status="UNDER_REVIEW",
             to_status="RESOLVED",
-            actor_id=course_obj.lecturer_id,
+            actor_id=advisor1.id,
             note=f"Score sheet verified and updated to {new_s}. Amendment transmitted to department board.",
             created_at=datetime.utcnow() - timedelta(days=resolved_days_ago)
         ))
 
-    # SCENARIO E: Unassigned Course Complaint (Direct HOD Routing)
-    # Student #26 (Grace Anyanwu) on CSC 415 (which has no assigned lecturer)
+    # SCENARIO E: Complaint for a shared course
+    # Student #26 (Grace Anyanwu) on CSC 415
     unassigned_course = courses[5]  # CSC 415
     student_unassigned = students[26]
     c_unassigned = Complaint(
@@ -429,7 +435,7 @@ def seed_database():
         status="SUBMITTED",
         claimed_score=35.0,
         group_id=None,
-        assigned_to_role="hod",
+        assigned_to_role="part_advisor",
         created_at=datetime.utcnow() - timedelta(days=1),
         updated_at=datetime.utcnow() - timedelta(days=1)
     )
@@ -441,17 +447,15 @@ def seed_database():
         from_status="NONE",
         to_status="SUBMITTED",
         actor_id=student_unassigned.id,
-        note="Course has no assigned lead lecturer; automatically routed directly to Head of Department (HOD) queue.",
+        note="Complaint routed to the student's department part advisor for review.",
         created_at=item_unassigned.created_at
     ))
 
     # SCENARIO F: In-App Notifications for users
     notif_data = [
-        (hod.id, "Urgent: 1 complaint item escalated to HOD for CSC 401 script remark dispute.", esc_comp.id),
-        (hod.id, "Intake routing: New complaint logged on unassigned course CSC 415.", c_unassigned.id),
-        (lecturer1.id, "Mass Complaint Alert: 25 students lodged MISSING_SCORE on CSC 301.", None),
+        (advisor1.id, "New part-advisor assignment: 25 students reported MISSING_SCORE on CSC 301.", None),
         (multi_student.id, "Your CSC 303 complaint item (Missing CA) is now UNDER_REVIEW by Dr. Folashade Babatunde.", multi_comp.id),
-        (esc_student.id, "Your CSC 401 script remark dispute has been escalated to the HOD office.", esc_comp.id),
+        (esc_student.id, "Your CSC 401 script remark dispute has returned to the part advisor for review.", esc_comp.id),
     ]
 
     for uid, msg, comp_id in notif_data:
@@ -472,19 +476,21 @@ def seed_database():
     print("Institution: Obafemi Awolowo University (OAU), Ile-Ife")
     print("All demo accounts have password: password123")
     print("-------------------------------------------------------")
-    print("1. HOD (Executive Oversight & Escalations):")
-    print("   Email: hod@oauife.edu.ng | Name: Prof. Olumide Adeleke")
-    print("\n2. Lecturers:")
-    print("   - Dr. Folashade Babatunde (CSC 301, CSC 303): lecturer1@oauife.edu.ng")
-    print("   - Dr. Emeka Okoye (CSC 305, CSC 401): lecturer2@oauife.edu.ng")
-    print("   - Engr. Adeola Adelekan (CPE 307): lecturer3@oauife.edu.ng")
-    print("\n3. Admin (User Management & Time Simulation):")
-    print("   Email: admin@oauife.edu.ng | Name: Mrs. Funmilayo Alabi")
-    print("\n4. Featured Students (Matric Format: CSC/2021/XXX):")
+    print("1. Part Advisors (staff ID format OAU/STAFF/0001):")
+    print("   - Dr. Folashade Babatunde: advisor1@oauife.edu.ng")
+    print("   - Dr. Emeka Okoye: advisor2@oauife.edu.ng")
+    print("   - Engr. Adeola Adelekan: advisor3@oauife.edu.ng")
+    print("   - Dr. Tola Akinola: advisor4@oauife.edu.ng")
+    print("   - Dr. Seyi Oladipo: advisor5@oauife.edu.ng")
+    print("   - Dr. Kemi Adebayo: advisor6@oauife.edu.ng (available for admin assignment)")
+    print("   - Engr. Dele Okafor: advisor7@oauife.edu.ng (available for admin assignment)")
+    print("\n2. Admin (User Management & Advisor Assignment):")
+    print(f"   Email: admin@oauife.edu.ng | Staff ID: {ADMIN_STAFF_ID} | Name: Mrs. Funmilayo Alabi")
+    print("\n3. Featured Students (Matric Format: CSC/2021/XXX):")
     print("   - Ayomide Balogun (Multi-issue): ayomide@oauife.edu.ng | Matric: CSC/2021/001")
     print("   - Chiamaka Eze (Mass issue group): chiamaka@oauife.edu.ng | Matric: CSC/2021/002")
-    print("   - Victor Ekanem (HOD Escalation): victor@oauife.edu.ng | Matric: CSC/2021/026")
-    print("   - Grace Anyanwu (Unassigned Course): grace@oauife.edu.ng | Matric: CSC/2021/027")
+    print("   - Victor Ekanem (Reopened complaint): victor@oauife.edu.ng | Matric: CSC/2021/026")
+    print("   - Grace Anyanwu (Shared course): grace@oauife.edu.ng | Matric: CSC/2021/027")
     print("   + 26 additional enrolled students (all password123)")
     print("=======================================================\n")
 

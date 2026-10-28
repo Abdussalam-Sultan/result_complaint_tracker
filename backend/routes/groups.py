@@ -5,10 +5,11 @@ from typing import List
 
 from backend.database import get_db
 from backend.models import IssueGroup, ComplaintItem, Complaint, Course, User
+from backend.models import Department
 from backend.schemas import (
     IssueGroupResponse, GroupActionRequest, ComplaintItemResponse, StatusEventResponse
 )
-from backend.auth import get_current_user, require_roles
+from backend.auth import get_current_user, require_assigned_part_advisor_or_admin
 from backend.helpers import (
     update_complaint_overall_status, record_status_event, notify_user
 )
@@ -57,6 +58,8 @@ def build_group_response(group: IssueGroup, db: Session) -> IssueGroupResponse:
             days_open=(datetime.utcnow() - item.created_at).days
         ))
 
+    department = db.query(Department).filter(Department.name == group.department).first()
+    advisor = department.part_advisor if department else None
     return IssueGroupResponse(
         id=group.id,
         course_id=group.course_id,
@@ -68,8 +71,8 @@ def build_group_response(group: IssueGroup, db: Session) -> IssueGroupResponse:
         created_at=group.created_at,
         updated_at=group.updated_at,
         student_count=len(group.items),
-        assigned_lecturer_id=course.lecturer_id if course else None,
-        assigned_lecturer_name=course.lecturer.name if (course and course.lecturer) else "Unassigned (HOD)",
+        assigned_advisor_id=advisor.id if advisor else None,
+        assigned_advisor_name=advisor.name if advisor else "Unassigned",
         items=items_out
     )
 
@@ -80,12 +83,16 @@ def list_groups(
 ):
     query = db.query(IssueGroup)
 
-    if current_user.role == "lecturer":
-        lecturer_course_ids = [c.id for c in db.query(Course).filter(Course.lecturer_id == current_user.id).all()]
-        query = query.filter(IssueGroup.course_id.in_(lecturer_course_ids))
+    if current_user.role == "part_advisor":
+        department = db.query(Department).filter(Department.name == current_user.department).first()
+        if not department or department.part_advisor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Your account is not the assigned part advisor.")
+        query = query.filter(IssueGroup.department == current_user.department)
     elif current_user.role == "student":
         # Students do not browse groups directly, but we don't throw 403; just return empty or enrolled
         return []
+    elif current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     groups = query.order_by(IssueGroup.created_at.desc()).all()
     return [build_group_response(g, db) for g in groups]
@@ -93,14 +100,14 @@ def list_groups(
 @router.get("/{group_id}", response_model=IssueGroupResponse)
 def get_group(
     group_id: int,
-    current_user: User = Depends(require_roles(["lecturer", "hod", "admin"])),
+    current_user: User = Depends(require_assigned_part_advisor_or_admin()),
     db: Session = Depends(get_db)
 ):
     group = db.query(IssueGroup).filter(IssueGroup.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Issue group not found")
 
-    if current_user.role == "lecturer" and group.course.lecturer_id != current_user.id:
+    if current_user.role == "part_advisor" and group.department != current_user.department:
         raise HTTPException(status_code=403, detail="Unauthorized access to this course group.")
 
     return build_group_response(group, db)
@@ -109,7 +116,7 @@ def get_group(
 def perform_bulk_action(
     group_id: int,
     req: GroupActionRequest,
-    current_user: User = Depends(require_roles(["lecturer", "hod", "admin"])),
+    current_user: User = Depends(require_assigned_part_advisor_or_admin()),
     db: Session = Depends(get_db)
 ):
     group = db.query(IssueGroup).filter(IssueGroup.id == group_id).first()
@@ -117,8 +124,8 @@ def perform_bulk_action(
         raise HTTPException(status_code=404, detail="Issue group not found")
 
     course = group.course
-    is_hod_or_admin = current_user.role in ["hod", "admin"]
-    if not is_hod_or_admin and course.lecturer_id != current_user.id:
+    is_admin = current_user.role == "admin"
+    if not is_admin and group.department != current_user.department:
         raise HTTPException(status_code=403, detail="Unauthorized to act on this course group.")
 
     action = req.action.upper()
@@ -129,7 +136,6 @@ def perform_bulk_action(
         "RESOLVE": "RESOLVED",
         "REJECT": "REJECTED",
         "REQUEST_INFO": "NEEDS_INFO",
-        "ESCALATE": "ESCALATED"
     }
 
     target_status = target_status_map.get(action)
@@ -149,9 +155,6 @@ def perform_bulk_action(
         prev_status = item.status
         item.status = target_status
         item.updated_at = datetime.utcnow()
-        if action == "ESCALATE":
-            item.assigned_to_role = "hod"
-
         # Record timeline event for EVERY student
         record_status_event(
             db=db,
@@ -172,7 +175,7 @@ def perform_bulk_action(
                 user_id=complaint.student_id,
                 message=(
                     f"Mass update on {course.code} ({item.issue_type}): "
-                    f"Status changed to {target_status}. Lecturer's note: {req.note.strip()}"
+                    f"Status changed to {target_status}. Part advisor's note: {req.note.strip()}"
                 ),
                 complaint_id=complaint.id,
                 commit=False
@@ -202,7 +205,7 @@ def perform_bulk_action(
 def remove_student_from_group(
     group_id: int,
     item_id: int,
-    current_user: User = Depends(require_roles(["lecturer", "hod", "admin"])),
+    current_user: User = Depends(require_assigned_part_advisor_or_admin()),
     db: Session = Depends(get_db)
 ):
     group = db.query(IssueGroup).filter(IssueGroup.id == group_id).first()
@@ -210,8 +213,8 @@ def remove_student_from_group(
         raise HTTPException(status_code=404, detail="Issue group not found")
 
     course = group.course
-    is_hod_or_admin = current_user.role in ["hod", "admin"]
-    if not is_hod_or_admin and course.lecturer_id != current_user.id:
+    is_admin = current_user.role == "admin"
+    if not is_admin and group.department != current_user.department:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     item = db.query(ComplaintItem).filter(

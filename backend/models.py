@@ -12,15 +12,16 @@ class User(Base):
     name = Column(String(120), nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
     matric_no = Column(String(50), unique=True, nullable=True, index=True)  # only for students
-    role = Column(String(20), nullable=False, index=True)  # 'student', 'lecturer', 'hod', 'admin'
+    staff_id = Column(String(50), unique=True, nullable=True, index=True)
+    role = Column(String(20), nullable=False, index=True)  # 'student', 'part_advisor', 'admin'
     password_hash = Column(String(255), nullable=False)
-    department = Column(String(100), default="Computer Science & Engineering")
+    department = Column(String(100), default="Computer Science with Mathematics")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     complaints = relationship("Complaint", back_populates="student", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
-    courses_taught = relationship("Course", back_populates="lecturer")
+    assigned_department = relationship("Department", back_populates="part_advisor", foreign_keys="Department.part_advisor_id", uselist=False)
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -32,14 +33,34 @@ class Course(Base):
     title = Column(String(200), nullable=False)
     session = Column(String(20), nullable=False, default="2023/2024")
     semester = Column(String(20), nullable=False, default="Harmattan")  # Harmattan or Rain
-    lecturer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # nullable -> routes to HOD
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    lecturer = relationship("User", back_populates="courses_taught")
+    departments = relationship("CourseDepartment", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course", cascade="all, delete-orphan")
     complaints = relationship("Complaint", back_populates="course")
     issue_groups = relationship("IssueGroup", back_populates="course", cascade="all, delete-orphan")
+
+
+class Department(Base):
+    __tablename__ = "departments"
+
+    name = Column(String(100), primary_key=True)
+    part_advisor_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
+
+    part_advisor = relationship("User", back_populates="assigned_department", foreign_keys=[part_advisor_id])
+    courses = relationship("CourseDepartment", back_populates="department_record", cascade="all, delete-orphan")
+
+
+class CourseDepartment(Base):
+    __tablename__ = "course_departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
+    department_name = Column(String(100), ForeignKey("departments.name"), nullable=False, index=True)
+
+    course = relationship("Course", back_populates="departments")
+    department_record = relationship("Department", back_populates="courses")
 
 
 class Enrollment(Base):
@@ -59,9 +80,10 @@ class IssueGroup(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    department = Column(String(100), nullable=False, index=True)
     issue_type = Column(String(50), nullable=False, index=True)
     title = Column(String(255), nullable=False)
-    status = Column(String(30), default="OPEN", index=True)  # OPEN, UNDER_REVIEW, NEEDS_INFO, RESOLVED, REJECTED, ESCALATED
+    status = Column(String(30), default="OPEN", index=True)  # OPEN, UNDER_REVIEW, NEEDS_INFO, RESOLVED, REJECTED
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -94,10 +116,10 @@ class ComplaintItem(Base):
     issue_type = Column(String(50), nullable=False, index=True)
     # MISSING_SCORE, WRONG_SCORE, WRONG_GRADE, MISSING_CA, SCRIPT_REMARK_REQUEST, OTHER
     status = Column(String(30), default="SUBMITTED", index=True)
-    # SUBMITTED, UNDER_REVIEW, NEEDS_INFO, RESOLVED, REJECTED, ESCALATED, WITHDRAWN
+    # SUBMITTED, UNDER_REVIEW, NEEDS_INFO, RESOLVED, REJECTED, WITHDRAWN
     claimed_score = Column(Float, nullable=True)  # 0 to 100
     group_id = Column(Integer, ForeignKey("issue_groups.id"), nullable=True, index=True)
-    assigned_to_role = Column(String(20), default="lecturer")  # 'lecturer' or 'hod'
+    assigned_to_role = Column(String(20), default="part_advisor")
     reopened = Column(Boolean, default=False)
     reopen_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)

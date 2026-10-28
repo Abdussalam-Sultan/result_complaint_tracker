@@ -15,7 +15,6 @@ const humanizeMessage = (msg: string): string => {
     .replace(/\bNEEDS_INFO\b/g, 'Information Requested')
     .replace(/\bRESOLVED\b/g, 'Resolved')
     .replace(/\bREJECTED\b/g, 'Rejected')
-    .replace(/\bESCALATED\b/g, 'Escalated to Head of Department')
     .replace(/\bWITHDRAWN\b/g, 'Withdrawn')
     .replace(/\bSUBMITTED\b/g, 'Submitted')
     .replace(/\bMISSING_CA\b/g, 'Continuous Assessment')
@@ -44,11 +43,11 @@ const getNotificationMeta = (msg: string) => {
       label: 'Decision',
     };
   }
-  if (m.includes('escalat') || m.includes('dispute') || m.includes('appealed')) {
+  if (m.includes('dispute') || m.includes('appealed')) {
     return {
       icon: <AlertTriangle className="w-4 h-4 text-purple-600 shrink-0" />,
       bg: 'bg-purple-50 text-purple-700 border-purple-200',
-      label: 'Escalation',
+      label: 'Dispute',
     };
   }
   if (m.includes('review') || m.includes('investigating')) {
@@ -134,16 +133,10 @@ export const Navbar: React.FC = () => {
             Student
           </span>
         );
-      case 'lecturer':
+      case 'part_advisor':
         return (
           <span className="bg-blue-800/60 text-blue-100 text-xs px-2.5 py-0.5 rounded-full font-medium border border-blue-600/40">
-            Lecturer
-          </span>
-        );
-      case 'hod':
-        return (
-          <span className="bg-amber-800/60 text-amber-200 text-xs px-2.5 py-0.5 rounded-full font-medium border border-amber-600/40">
-            Head of Department (HOD)
+            Part Advisor
           </span>
         );
       case 'admin':
@@ -164,8 +157,7 @@ export const Navbar: React.FC = () => {
         <div
           onClick={() => {
             if (user?.role === 'student') navigate('/student');
-            else if (user?.role === 'lecturer') navigate('/lecturer');
-            else if (user?.role === 'hod') navigate('/hod');
+            else if (user?.role === 'part_advisor') navigate('/advisor');
             else if (user?.role === 'admin') navigate('/admin');
           }}
           className="flex items-center gap-3 cursor-pointer group"

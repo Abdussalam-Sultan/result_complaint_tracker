@@ -19,9 +19,6 @@ def derive_complaint_status(items: list[ComplaintItem]) -> str:
             return f"CLOSED ({resolved_count} resolved, {rejected_count + withdrawn_count} closed)"
         return "CLOSED (All rejected/withdrawn)"
 
-    if any(s == "ESCALATED" for s in statuses):
-        return f"ESCALATED TO HOD ({statuses.count('ESCALATED')} item{'s' if statuses.count('ESCALATED') > 1 else ''})"
-
     if any(s == "NEEDS_INFO" for s in statuses):
         return "ACTION REQUIRED (Needs your response)"
 
@@ -84,7 +81,6 @@ def notify_user(
         .replace("NEEDS_INFO", "Information Requested")
         .replace("RESOLVED", "Resolved")
         .replace("REJECTED", "Rejected")
-        .replace("ESCALATED", "Escalated to Head of Department")
         .replace("WITHDRAWN", "Withdrawn")
         .replace("SUBMITTED", "Submitted")
         .replace("MISSING_CA", "Continuous Assessment")

@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 from backend.database import get_db
-from backend.models import ComplaintItem, Complaint, Course, User
+from backend.models import ComplaintItem, Complaint, Course, Department, User
 from backend.schemas import (
     ItemActionRequest, ItemReplyRequest, ItemReopenRequest,
     ComplaintItemResponse, StatusEventResponse
 )
-from backend.auth import get_current_user, require_roles
+from backend.auth import get_current_user, require_assigned_part_advisor_or_admin, require_roles
 from backend.helpers import (
     update_complaint_overall_status, record_status_event, notify_user
 )
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/items", tags=["items"])
 def handle_item_action(
     item_id: int,
     req: ItemActionRequest,
-    current_user: User = Depends(require_roles(["lecturer", "hod", "admin"])),
+    current_user: User = Depends(require_assigned_part_advisor_or_admin()),
     db: Session = Depends(get_db)
 ):
     item = db.query(ComplaintItem).filter(ComplaintItem.id == item_id).first()
@@ -30,10 +30,10 @@ def handle_item_action(
     course = complaint.course
 
     # Authorization checks
-    is_hod_or_admin = current_user.role in ["hod", "admin"]
-    is_course_lecturer = (course.lecturer_id == current_user.id)
+    is_admin = current_user.role == "admin"
+    is_assigned_advisor = complaint.student.department == current_user.department
 
-    if not is_hod_or_admin and not is_course_lecturer:
+    if not is_admin and not is_assigned_advisor:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to take action on this course complaint."
@@ -41,7 +41,7 @@ def handle_item_action(
 
     # Note validation: REJECT and REQUEST_INFO strictly require notes
     action = req.action.upper()
-    if action in ["REJECT", "REQUEST_INFO", "OVERRIDE"] and not req.note.strip():
+    if action in ["REJECT", "REQUEST_INFO"] and not req.note.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"A detailed reason or note is required for action: {action}"
@@ -81,23 +81,6 @@ def handle_item_action(
                 detail=f"Cannot request info on closed item ({prev_status})."
             )
         target_status = "NEEDS_INFO"
-
-    elif action == "ESCALATE":
-        if prev_status in ["RESOLVED", "WITHDRAWN"]:
-            raise HTTPException(status_code=400, detail="Cannot escalate resolved or withdrawn item.")
-        target_status = "ESCALATED"
-        item.assigned_to_role = "hod"
-
-    elif action == "OVERRIDE":
-        # HOD override power
-        if not is_hod_or_admin:
-            raise HTTPException(status_code=403, detail="Only HOD or Admin can perform an executive override.")
-        # Override note can specify resolution or rejection
-        if "REJECT" in req.note.upper():
-            target_status = "REJECTED"
-        else:
-            target_status = "RESOLVED"
-        item.assigned_to_role = "hod"
 
     # State update
     item.status = target_status
@@ -206,13 +189,11 @@ def reply_to_needs_info(
         commit=False
     )
 
-    # Notify lecturer (or HOD if unassigned)
-    target_user_id = complaint.course.lecturer_id
-    if not target_user_id:
-        hod = db.query(User).filter(User.role == "hod").first()
-        target_user_id = hod.id if hod else None
-
-    if target_user_id:
+    department = db.query(Department).filter(Department.name == complaint.student.department).first()
+    target_user_ids = [department.part_advisor_id] if department and department.part_advisor_id else [
+        admin.id for admin in db.query(User).filter(User.role == "admin").all()
+    ]
+    for target_user_id in target_user_ids:
         notify_user(
             db=db,
             user_id=target_user_id,
@@ -260,10 +241,10 @@ def reopen_rejected_item(
             detail="A detailed justification is required to dispute a rejection."
         )
 
-    # Disputed rejections automatically escalate to the HOD for independent review
+    # A disputed rejection returns to the department's part advisor for review.
     prev_status = item.status
-    item.status = "ESCALATED"
-    item.assigned_to_role = "hod"
+    item.status = "UNDER_REVIEW"
+    item.assigned_to_role = "part_advisor"
     item.reopened = True
     item.reopen_count += 1
     item.updated_at = datetime.utcnow()
@@ -273,21 +254,23 @@ def reopen_rejected_item(
         db=db,
         item_id=item.id,
         from_status=prev_status,
-        to_status="ESCALATED",
+        to_status="UNDER_REVIEW",
         actor_id=current_user.id,
-        note=f"Student disputed rejection (Reopen 1 of 1): {req.justification.strip()}. Escalated to HOD for final decision.",
+        note=f"Student reopened the rejected complaint (1 of 1): {req.justification.strip()}. Returned to the part advisor for review.",
         commit=False
     )
 
-    # Notify HOD
-    hod = db.query(User).filter(User.role == "hod").first()
-    if hod:
+    department = db.query(Department).filter(Department.name == complaint.student.department).first()
+    recipient_ids = [department.part_advisor_id] if department and department.part_advisor_id else [
+        admin.id for admin in db.query(User).filter(User.role == "admin").all()
+    ]
+    for recipient_id in recipient_ids:
         notify_user(
             db=db,
-            user_id=hod.id,
+            user_id=recipient_id,
             message=(
-                f"Dispute escalation: Student {current_user.name} ({current_user.matric_no}) "
-                f"reopened rejected complaint on {complaint.course.code} for HOD review."
+                f"Student {current_user.name} ({current_user.matric_no}) reopened a rejected complaint "
+                f"on {complaint.course.code} for another review."
             ),
             complaint_id=complaint.id,
             commit=False
@@ -299,7 +282,7 @@ def reopen_rejected_item(
 
     return {
         "success": True,
-        "message": "Complaint reopened and escalated directly to the Head of Department (HOD) for independent review."
+        "message": "Complaint reopened and returned to the part advisor for review."
     }
 
 @router.post("/{item_id}/withdraw")

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from backend.database import get_db
 from backend.models import (
-    Complaint, ComplaintItem, Course, Enrollment, IssueGroup,
+    Complaint, ComplaintItem, Course, Department, Enrollment, IssueGroup,
     StatusEvent, User, Attachment
 )
 from backend.schemas import (
@@ -66,10 +66,15 @@ def _get_authorized_complaint(
 
     if current_user.role == "student":
         allowed = complaint.student_id == current_user.id
-    elif current_user.role == "lecturer":
-        allowed = complaint.course.lecturer_id == current_user.id
+    elif current_user.role == "part_advisor":
+        department = db.query(Department).filter(Department.name == current_user.department).first()
+        allowed = (
+            complaint.student.department == current_user.department
+            and department is not None
+            and department.part_advisor_id == current_user.id
+        )
     else:
-        allowed = current_user.role in {"hod", "admin"}
+        allowed = current_user.role == "admin"
 
     if not allowed:
         raise HTTPException(
@@ -166,11 +171,13 @@ def list_complaints(
 
     if current_user.role == "student":
         query = query.filter(Complaint.student_id == current_user.id)
-    elif current_user.role == "lecturer":
-        # Lecturer can only see complaints for their assigned courses
-        lecturer_course_ids = [c.id for c in db.query(Course).filter(Course.lecturer_id == current_user.id).all()]
-        query = query.filter(Complaint.course_id.in_(lecturer_course_ids))
-    # HOD and Admin see all department complaints
+    elif current_user.role == "part_advisor":
+        department = db.query(Department).filter(Department.name == current_user.department).first()
+        if not department or department.part_advisor_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Your account is not the assigned part advisor.")
+        query = query.join(User, Complaint.student_id == User.id).filter(User.department == current_user.department)
+    elif current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied.")
 
     if course_id:
         query = query.filter(Complaint.course_id == course_id)
@@ -194,15 +201,15 @@ def create_complaint(
     current_user: User = Depends(require_roles(["student"])),
     db: Session = Depends(get_db)
 ):
-    # 1. Verify student enrollment in course
-    enrollment = db.query(Enrollment).filter(
-        Enrollment.student_id == current_user.id,
-        Enrollment.course_id == payload.course_id
+    # 1. Verify student is eligible for course
+    eligible = db.query(CourseDepartment).filter(
+        CourseDepartment.course_id == payload.course_id,
+        CourseDepartment.department_name.in_([current_user.department, SHARED_DEPARTMENT]),
     ).first()
-    if not enrollment:
+    if not eligible:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can only submit complaints for courses you are officially enrolled in."
+            detail="You can only submit complaints for courses assigned to your department.",
         )
 
     course = db.query(Course).filter(Course.id == payload.course_id).first()
@@ -210,8 +217,8 @@ def create_complaint(
         raise HTTPException(status_code=404, detail="Course not found")
 
     # 2. Duplicate prevention: A student cannot submit the same issue_type for the same course and session
-    # while one is still open (SUBMITTED, UNDER_REVIEW, NEEDS_INFO, ESCALATED)
-    open_statuses = ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO", "ESCALATED"]
+    # while one is still open.
+    open_statuses = ["SUBMITTED", "UNDER_REVIEW", "NEEDS_INFO"]
     existing_items = (
         db.query(ComplaintItem)
         .join(Complaint)
@@ -247,9 +254,9 @@ def create_complaint(
     db.add(complaint)
     db.flush()
 
-    # Determine assigned role based on course lecturer presence
-    has_assigned_lecturer = course.lecturer_id is not None
-    initial_assigned_role = "lecturer" if has_assigned_lecturer else "hod"
+    department = db.query(Department).filter(Department.name == current_user.department).first()
+    advisor = department.part_advisor if department else None
+    initial_assigned_role = "part_advisor"
 
     # 4. Create ComplaintItems and attach to IssueGroups (for mass complaint clustering)
     created_items = []
@@ -260,13 +267,15 @@ def create_complaint(
             # Find active group for same course and issue_type
             group = db.query(IssueGroup).filter(
                 IssueGroup.course_id == course.id,
+                IssueGroup.department == current_user.department,
                 IssueGroup.issue_type == item_in.issue_type,
-                IssueGroup.status.in_(["OPEN", "UNDER_REVIEW", "NEEDS_INFO", "ESCALATED"])
+                IssueGroup.status.in_(["OPEN", "UNDER_REVIEW", "NEEDS_INFO"])
             ).first()
 
             if not group:
                 group = IssueGroup(
                     course_id=course.id,
+                    department=current_user.department,
                     issue_type=item_in.issue_type,
                     title=f"{course.code}: {item_in.issue_type.replace('_', ' ').title()} Issue Cluster",
                     status="OPEN",
@@ -291,10 +300,7 @@ def create_complaint(
         created_items.append(item)
 
         # Initial Status Event
-        if not has_assigned_lecturer:
-            note = "Complaint submitted by student. Course has no assigned lecturer; automatically routed directly to Head of Department (HOD)."
-        else:
-            note = f"Complaint submitted by student ({current_user.name}, {current_user.matric_no}). Awaiting lecturer review."
+        note = f"Complaint submitted by student ({current_user.name}, {current_user.matric_no}). Routed to the {current_user.department} part advisor."
 
         record_status_event(
             db=db,
@@ -318,22 +324,20 @@ def create_complaint(
         commit=False
     )
 
-    if has_assigned_lecturer:
+    if advisor:
         notify_user(
             db=db,
-            user_id=course.lecturer_id,
+            user_id=advisor.id,
             message=f"New complaint #{complaint.id} submitted for {course.code} by student {current_user.name}.",
             complaint_id=complaint.id,
             commit=False
         )
     else:
-        # Notify HOD
-        hod = db.query(User).filter(User.role == "hod").first()
-        if hod:
+        for admin in db.query(User).filter(User.role == "admin").all():
             notify_user(
                 db=db,
-                user_id=hod.id,
-                message=f"Escalated intake: New complaint #{complaint.id} for unassigned course {course.code} routed to HOD.",
+                user_id=admin.id,
+                message=f"No part advisor is assigned to {current_user.department}; complaint #{complaint.id} needs assignment.",
                 complaint_id=complaint.id,
                 commit=False
             )
