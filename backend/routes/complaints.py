@@ -5,9 +5,10 @@ from datetime import datetime
 from pathlib import PurePath
 from uuid import uuid4
 
+from backend.constants import SHARED_DEPARTMENT
 from backend.database import get_db
 from backend.models import (
-    Complaint, ComplaintItem, Course, Department, Enrollment, IssueGroup,
+    Complaint, ComplaintItem, Course, CourseDepartment, Department, Enrollment, IssueGroup,
     StatusEvent, User, Attachment
 )
 from backend.schemas import (
