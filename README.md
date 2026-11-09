@@ -150,3 +150,12 @@ Vercel Functions use temporary storage for uploaded attachments (`/tmp/uploads`)
 5. **Deploy**, then open `/api/health`, then `/register` and create a test student.
 
 Never commit `.env` files or connection strings to GitHub.
+
+---
+
+## References
+
+These official documentation pages describe technologies used by this project and are provided as further reading; they are not a claim that they were consulted during implementation.
+
+1. FastAPI. (n.d.). *FastAPI documentation*. https://fastapi.tiangolo.com/
+2. SQLAlchemy. (n.d.). *SQLAlchemy 2.0 documentation*. https://docs.sqlalchemy.org/en/20/
